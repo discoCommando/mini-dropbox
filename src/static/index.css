@@ -1,0 +1,92 @@
+
+
+body {
+  /*position: relative;*/
+  /*margin: 0;*/
+  /*font-family: 'Work Sans', Arial, Helvetica, sans-serif;*/
+  min-height: 100%;
+  background: linear-gradient(to bottom, #C9D6FF 0%, #E2E2E2 100%);
+  
+}
+
+
+.middle {
+  min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+  min-height: 100vh; /* These two lines are counted as one :-)       */
+
+  display: flex;
+  align-items: center;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.navbar-right-item {
+  margin-right: 20;
+}
+.navbar-right-item-icon {
+  margin-right: 5;
+}
+
+.username {
+  margin: 0 0 0 10px;
+}
+
+.filetype {
+  margin-right: 5;
+}
+
+.folders {
+  margin-top: 10;
+  margin-bottom: 10;
+}
+
+.folders span {
+  margin-right: 10;
+}
+
+.file-action.dropdown-toggle::after {
+  border: 0;
+  margin-left: 0;
+}
+
+.progress-bar {
+  height: 30px;
+}
+
+.btn {
+  cursor: pointer;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.login-form {
+  padding-left : 0;
+  padding-right : 0;
+  padding-top : 0;
+}
+
+.nav-link.login-header {
+  border-left: 0;
+  border-top-right-radius: 0;
+}
+
+.nav-link.login-header, .nav-link.register-header {
+  border-top: 0;
+  background-color: #f7f7f9;
+  border-color: #eceeef #eceeef #ddd;
+}
+
+.nav-link.register-header {
+  border-right: 0;
+  border-top-left-radius: 0;
+}
+
+.login-tab-content {
+  padding: 1.25rem;
+}
