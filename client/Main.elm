@@ -39,10 +39,13 @@ init =
         fetch =
             Http.send (fromServer Initial) Api.getApiItem
 
+        test =
+            Http.send (fromServer Test) (Api.getApiFilesByFolderid 10)
+
         state =
             { items = empty, addItemInput = "", error = Nothing }
     in
-        ( state, fetch )
+        ( state, Cmd.batch [ fetch, test ] )
 
 
 
@@ -57,6 +60,7 @@ type Msg
 
 type FromServer
     = Initial (List ItemId)
+    | Test FileStructure
     | NewItem Item
     | CreatedItem ItemId
     | Delete ItemId
@@ -89,6 +93,13 @@ update message s =
 
                 Delete id ->
                     { s | items = remove id s.items } ! []
+
+                Test test ->
+                    let
+                        _ =
+                            Debug.log "test" test
+                    in
+                        s ! []
 
         FromUi fromUi ->
             case fromUi of

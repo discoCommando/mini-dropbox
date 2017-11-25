@@ -2,6 +2,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Api where
 
@@ -10,13 +13,26 @@ import           Data.Proxy
 import           GHC.Generics
 import           Servant.API
 import           Servant.Elm      (ElmType)
+import           Database.Persist
+import           Data.Text
+import           Models
 
-type Api =
-  "api" :>
-    ("item" :> Get '[JSON] [ItemId] :<|>
-     "item" :> Capture "itemId" ItemId :> Get '[JSON] Item :<|>
-     "item" :> ReqBody '[JSON] String :> Post '[JSON] ItemId :<|>
-     "item" :> Capture "itemId" ItemId :> Delete '[JSON] ItemId)
+-- type Api =
+--   "api" :>
+--     ("item" :> Get '[JSON] [ItemId] :<|>
+--      "item" :> Capture "itemId" ItemId :> Get '[JSON] Item :<|>
+--      "item" :> ReqBody '[JSON] String :> Post '[JSON] ItemId :<|>
+--      "item" :> Capture "itemId" ItemId :> Delete '[JSON] ItemId)
+
+
+
+type Api = 
+  "api" :> ("files" :> Capture "folderid" Int :> Get '[JSON] FileStructure :<|>
+  "item" :> Get '[JSON] [ItemId] :<|>
+  "item" :> Capture "itemId" ItemId :> Get '[JSON] Item :<|>
+  "item" :> ReqBody '[JSON] String :> Post '[JSON] ItemId :<|>
+  "item" :> Capture "itemId" ItemId :> Delete '[JSON] ItemId)
+
 
 api :: Proxy Api
 api = Proxy

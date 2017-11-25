@@ -12,13 +12,83 @@ type alias Item =
     , text : String
     }
 
+
 decodeItem : Decoder Item
 decodeItem =
     decode Item
         |> required "id" int
         |> required "text" string
 
-getApiItem : Http.Request (List (Int))
+
+type alias File =
+    { fileUserid : Int
+    , fileFolderid : Int
+    , fileName : String
+    }
+
+
+decodeFile : Decoder File
+decodeFile =
+    decode File
+        |> required "fileUserid" int
+        |> required "fileFolderid" int
+        |> required "fileName" string
+
+
+type alias Folder =
+    { folderUserid : Int
+    , folderParentid : Int
+    , folderName : String
+    }
+
+
+decodeFolder : Decoder Folder
+decodeFolder =
+    decode Folder
+        |> required "folderUserid" int
+        |> required "folderParentid" int
+        |> required "folderName" string
+
+
+type alias FileStructure =
+    { files : List File
+    , folders : List Folder
+    }
+
+
+decodeFileStructure : Decoder FileStructure
+decodeFileStructure =
+    decode FileStructure
+        |> required "files" (list decodeFile)
+        |> required "folders" (list decodeFolder)
+
+
+getApiFilesByFolderid : Int -> Http.Request FileStructure
+getApiFilesByFolderid capture_folderid =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            []
+        , url =
+            String.join "/"
+                [ ""
+                , "api"
+                , "files"
+                , capture_folderid |> toString |> Http.encodeUri
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson decodeFileStructure
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+
+getApiItem : Http.Request (List Int)
 getApiItem =
     Http.request
         { method =
@@ -41,7 +111,8 @@ getApiItem =
             False
         }
 
-getApiItemByItemId : Int -> Http.Request (Item)
+
+getApiItemByItemId : Int -> Http.Request Item
 getApiItemByItemId capture_itemId =
     Http.request
         { method =
@@ -65,7 +136,8 @@ getApiItemByItemId capture_itemId =
             False
         }
 
-postApiItem : String -> Http.Request (Int)
+
+postApiItem : String -> Http.Request Int
 postApiItem body =
     Http.request
         { method =
@@ -88,7 +160,8 @@ postApiItem body =
             False
         }
 
-deleteApiItemByItemId : Int -> Http.Request (Int)
+
+deleteApiItemByItemId : Int -> Http.Request Int
 deleteApiItemByItemId capture_itemId =
     Http.request
         { method =

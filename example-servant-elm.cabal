@@ -22,9 +22,14 @@ executable server
     , servant-server
     , transformers
     , containers
+    , persistent
+    , persistent-template
+    , persistent-mysql
+    , text
   other-modules:
       Api
       App
+      Models
   default-language: Haskell2010
 
 test-suite spec

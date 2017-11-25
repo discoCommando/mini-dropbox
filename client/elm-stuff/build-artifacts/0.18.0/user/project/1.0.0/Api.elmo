@@ -129,3 +129,82 @@ var _user$project$Api$getApiItemByItemId = function (capture_itemId) {
 			withCredentials: false
 		});
 };
+var _user$project$Api$File = F3(
+	function (a, b, c) {
+		return {fileUserid: a, fileFolderid: b, fileName: c};
+	});
+var _user$project$Api$decodeFile = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'fileName',
+	_elm_lang$core$Json_Decode$string,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'fileFolderid',
+		_elm_lang$core$Json_Decode$int,
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'fileUserid',
+			_elm_lang$core$Json_Decode$int,
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$Api$File))));
+var _user$project$Api$Folder = F3(
+	function (a, b, c) {
+		return {folderUserid: a, folderParentid: b, folderName: c};
+	});
+var _user$project$Api$decodeFolder = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'folderName',
+	_elm_lang$core$Json_Decode$string,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'folderParentid',
+		_elm_lang$core$Json_Decode$int,
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'folderUserid',
+			_elm_lang$core$Json_Decode$int,
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$Api$Folder))));
+var _user$project$Api$FileStructure = F2(
+	function (a, b) {
+		return {files: a, folders: b};
+	});
+var _user$project$Api$decodeFileStructure = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'folders',
+	_elm_lang$core$Json_Decode$list(_user$project$Api$decodeFolder),
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'files',
+		_elm_lang$core$Json_Decode$list(_user$project$Api$decodeFile),
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$Api$FileStructure)));
+var _user$project$Api$getApiFilesByFolderid = function (capture_folderid) {
+	return _elm_lang$http$Http$request(
+		{
+			method: 'GET',
+			headers: {ctor: '[]'},
+			url: A2(
+				_elm_lang$core$String$join,
+				'/',
+				{
+					ctor: '::',
+					_0: '',
+					_1: {
+						ctor: '::',
+						_0: 'api',
+						_1: {
+							ctor: '::',
+							_0: 'files',
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$http$Http$encodeUri(
+									_elm_lang$core$Basics$toString(capture_folderid)),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}),
+			body: _elm_lang$http$Http$emptyBody,
+			expect: _elm_lang$http$Http$expectJson(_user$project$Api$decodeFileStructure),
+			timeout: _elm_lang$core$Maybe$Nothing,
+			withCredentials: false
+		});
+};

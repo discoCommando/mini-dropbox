@@ -73,7 +73,7 @@ var _user$project$Main$update = F2(
 										_user$project$Api$getApiItemByItemId(_p2._0)),
 									_1: {ctor: '[]'}
 								});
-						default:
+						case 'Delete':
 							return A2(
 								_elm_lang$core$Platform_Cmd_ops['!'],
 								_elm_lang$core$Native_Utils.update(
@@ -82,10 +82,16 @@ var _user$project$Main$update = F2(
 										items: A2(_elm_lang$core$Dict$remove, _p2._0, s.items)
 									}),
 								{ctor: '[]'});
+						default:
+							var _p4 = A2(_elm_lang$core$Debug$log, 'test', _p2._0);
+							return A2(
+								_elm_lang$core$Platform_Cmd_ops['!'],
+								s,
+								{ctor: '[]'});
 					}
 				case 'FromUi':
-					var _p4 = _p1._0;
-					switch (_p4.ctor) {
+					var _p5 = _p1._0;
+					switch (_p5.ctor) {
 						case 'AddItemButton':
 							var newState = _elm_lang$core$Native_Utils.update(
 								s,
@@ -109,7 +115,7 @@ var _user$project$Main$update = F2(
 								_elm_lang$core$Platform_Cmd_ops['!'],
 								_elm_lang$core$Native_Utils.update(
 									s,
-									{addItemInput: _p4._0}),
+									{addItemInput: _p5._0}),
 								{ctor: '[]'});
 						default:
 							return {
@@ -118,7 +124,7 @@ var _user$project$Main$update = F2(
 								_1: A2(
 									_elm_lang$http$Http$send,
 									_user$project$Main$fromServer(_user$project$Main$Delete),
-									_user$project$Api$deleteApiItemByItemId(_p4._0))
+									_user$project$Api$deleteApiItemByItemId(_p5._0))
 							};
 					}
 				default:
@@ -134,16 +140,36 @@ var _user$project$Main$update = F2(
 			}
 		}
 	});
+var _user$project$Main$Test = function (a) {
+	return {ctor: 'Test', _0: a};
+};
 var _user$project$Main$Initial = function (a) {
 	return {ctor: 'Initial', _0: a};
 };
 var _user$project$Main$init = function () {
 	var state = {items: _elm_lang$core$Dict$empty, addItemInput: '', error: _elm_lang$core$Maybe$Nothing};
+	var test = A2(
+		_elm_lang$http$Http$send,
+		_user$project$Main$fromServer(_user$project$Main$Test),
+		_user$project$Api$getApiFilesByFolderid(10));
 	var fetch = A2(
 		_elm_lang$http$Http$send,
 		_user$project$Main$fromServer(_user$project$Main$Initial),
 		_user$project$Api$getApiItem);
-	return {ctor: '_Tuple2', _0: state, _1: fetch};
+	return {
+		ctor: '_Tuple2',
+		_0: state,
+		_1: _elm_lang$core$Platform_Cmd$batch(
+			{
+				ctor: '::',
+				_0: fetch,
+				_1: {
+					ctor: '::',
+					_0: test,
+					_1: {ctor: '[]'}
+				}
+			})
+	};
 }();
 var _user$project$Main$Done = function (a) {
 	return {ctor: 'Done', _0: a};
@@ -206,9 +232,9 @@ var _user$project$Main$view = function (state) {
 				_elm_lang$core$Basics_ops['++'],
 				A2(
 					_elm_lang$core$List$map,
-					function (_p5) {
+					function (_p6) {
 						return _user$project$Main$viewItem(
-							_elm_lang$core$Tuple$second(_p5));
+							_elm_lang$core$Tuple$second(_p6));
 					},
 					_elm_lang$core$Dict$toList(state.items)),
 				{
@@ -218,9 +244,9 @@ var _user$project$Main$view = function (state) {
 						{
 							ctor: '::',
 							_0: _elm_lang$html$Html_Events$onInput(
-								function (_p6) {
+								function (_p7) {
 									return _user$project$Main$FromUi(
-										_user$project$Main$AddItemInputChange(_p6));
+										_user$project$Main$AddItemInputChange(_p7));
 								}),
 							_1: {ctor: '[]'}
 						},
@@ -248,7 +274,7 @@ var _user$project$Main$main = _elm_lang$html$Html$program(
 	{
 		init: _user$project$Main$init,
 		update: _user$project$Main$update,
-		subscriptions: function (_p7) {
+		subscriptions: function (_p8) {
 			return _elm_lang$core$Platform_Sub$none;
 		},
 		view: _user$project$Main$view

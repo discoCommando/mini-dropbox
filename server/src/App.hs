@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module App where
 
@@ -11,6 +12,7 @@ import           Network.Wai.MakeAssets
 import           Servant
 
 import           Api
+import           Models
 
 type WithAssets = Api :<|> Raw
 
@@ -27,12 +29,24 @@ server = do
   db <- mkDB
   return $ apiServer db :<|> assets
 
+-- apiServer :: DB -> Server Api
+-- apiServer db =
+--   listItems db :<|>
+--   getItem db :<|>
+--   postItem db :<|>
+--   deleteItem db
+
 apiServer :: DB -> Server Api
 apiServer db =
+  listFiles db :<|>
   listItems db :<|>
   getItem db :<|>
   postItem db :<|>
   deleteItem db
+
+listFiles :: DB -> Int -> Handler FileStructure
+listFiles db id = 
+  return $ FileStructure [File 1 id "test"] []
 
 listItems :: DB -> Handler [ItemId]
 listItems db = liftIO $ allItemIds db
