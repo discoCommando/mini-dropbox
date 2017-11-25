@@ -1,0 +1,131 @@
+var _user$project$Api$deleteApiItemByItemId = function (capture_itemId) {
+	return _elm_lang$http$Http$request(
+		{
+			method: 'DELETE',
+			headers: {ctor: '[]'},
+			url: A2(
+				_elm_lang$core$String$join,
+				'/',
+				{
+					ctor: '::',
+					_0: '',
+					_1: {
+						ctor: '::',
+						_0: 'api',
+						_1: {
+							ctor: '::',
+							_0: 'item',
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$http$Http$encodeUri(
+									_elm_lang$core$Basics$toString(capture_itemId)),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}),
+			body: _elm_lang$http$Http$emptyBody,
+			expect: _elm_lang$http$Http$expectJson(_elm_lang$core$Json_Decode$int),
+			timeout: _elm_lang$core$Maybe$Nothing,
+			withCredentials: false
+		});
+};
+var _user$project$Api$postApiItem = function (body) {
+	return _elm_lang$http$Http$request(
+		{
+			method: 'POST',
+			headers: {ctor: '[]'},
+			url: A2(
+				_elm_lang$core$String$join,
+				'/',
+				{
+					ctor: '::',
+					_0: '',
+					_1: {
+						ctor: '::',
+						_0: 'api',
+						_1: {
+							ctor: '::',
+							_0: 'item',
+							_1: {ctor: '[]'}
+						}
+					}
+				}),
+			body: _elm_lang$http$Http$jsonBody(
+				_elm_lang$core$Json_Encode$string(body)),
+			expect: _elm_lang$http$Http$expectJson(_elm_lang$core$Json_Decode$int),
+			timeout: _elm_lang$core$Maybe$Nothing,
+			withCredentials: false
+		});
+};
+var _user$project$Api$getApiItem = _elm_lang$http$Http$request(
+	{
+		method: 'GET',
+		headers: {ctor: '[]'},
+		url: A2(
+			_elm_lang$core$String$join,
+			'/',
+			{
+				ctor: '::',
+				_0: '',
+				_1: {
+					ctor: '::',
+					_0: 'api',
+					_1: {
+						ctor: '::',
+						_0: 'item',
+						_1: {ctor: '[]'}
+					}
+				}
+			}),
+		body: _elm_lang$http$Http$emptyBody,
+		expect: _elm_lang$http$Http$expectJson(
+			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$int)),
+		timeout: _elm_lang$core$Maybe$Nothing,
+		withCredentials: false
+	});
+var _user$project$Api$Item = F2(
+	function (a, b) {
+		return {id: a, text: b};
+	});
+var _user$project$Api$decodeItem = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'text',
+	_elm_lang$core$Json_Decode$string,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'id',
+		_elm_lang$core$Json_Decode$int,
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$Api$Item)));
+var _user$project$Api$getApiItemByItemId = function (capture_itemId) {
+	return _elm_lang$http$Http$request(
+		{
+			method: 'GET',
+			headers: {ctor: '[]'},
+			url: A2(
+				_elm_lang$core$String$join,
+				'/',
+				{
+					ctor: '::',
+					_0: '',
+					_1: {
+						ctor: '::',
+						_0: 'api',
+						_1: {
+							ctor: '::',
+							_0: 'item',
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$http$Http$encodeUri(
+									_elm_lang$core$Basics$toString(capture_itemId)),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}),
+			body: _elm_lang$http$Http$emptyBody,
+			expect: _elm_lang$http$Http$expectJson(_user$project$Api$decodeItem),
+			timeout: _elm_lang$core$Maybe$Nothing,
+			withCredentials: false
+		});
+};
