@@ -10,5 +10,5 @@ client/elm-stuff/
 client/tests/elm-stuff/
 client/tests.js
 .stack-work/
-assets/index.html
+assets/index.js
 
