@@ -1,0 +1,41 @@
+-- This file has been generated from package.yaml by hpack version 0.15.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:                mini-dropbox
+version:             0.0.0
+build-type:          Simple
+cabal-version:       >= 1.10
+
+executable mini-dropbox
+  main-is: Main.hs
+  hs-source-dirs:
+    server/src
+  build-depends:
+    base,
+    warp,
+    aeson,
+    servant-elm,
+    servant,
+    wai,
+    transformers,
+    containers,
+    heist,
+    map-syntax,
+    snap,
+    snap-server,
+    servant-snap,
+    xmlhtml,
+    snap-cors,
+    snaplet-postgresql-simple,
+    postgresql-simple,
+    snap-core,
+    lens,
+    mtl,
+    text
+  other-modules:
+    Api
+    App
+    Main_old
+    Models
+  default-language: Haskell2010

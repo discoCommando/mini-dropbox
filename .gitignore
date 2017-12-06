@@ -10,5 +10,10 @@ client/elm-stuff/
 client/tests/elm-stuff/
 client/tests.js
 .stack-work/
-assets/index.js
+assets/index.*
+
+site_key.txt
+*.swp
+
+log/
 
