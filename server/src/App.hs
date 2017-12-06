@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE DataKinds #-}
 
 module App where
 
@@ -9,6 +10,7 @@ import           Control.Monad.Trans.Except
 import           Data.Map
 import           Network.Wai
 import           Network.Wai.MakeAssets
+import           Servant.Utils.StaticFiles
 import           Servant
 
 import           Api
@@ -27,7 +29,7 @@ server :: IO (Server WithAssets)
 server = do
   assets <- serveAssets
   db <- mkDB
-  return $ apiServer db :<|> assets
+  return $ apiServer db :<|> serveDirectory "assets/index.html"
 
 -- apiServer :: DB -> Server Api
 -- apiServer db =
