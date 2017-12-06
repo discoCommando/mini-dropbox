@@ -33,141 +33,29 @@ import           Snap.Snaplet.Session.Backends.CookieSession
 import           Snap.Snaplet.Auth.Backends.JsonFile
 import           Snap.Snaplet.Heist
 import           Snap.Http.Server (defaultConfig)
+import           Snap.Util.FileServe
 
 import           Servant.API
 import           Servant (serveSnap, Server, serveDirectory)
+import           Models 
+import           App
 
 -- * Example
 
 -- | A greet message data type
-newtype Greet = Greet { _msg :: Text }
-  deriving (Generic, Show)
-
-instance FromJSON Greet
-instance ToJSON Greet
-
--- API specification
-type TestApi m =
-
-  -- GET /hello/:name?capital={true, false}  returns a Greet as JSON
-  "hello" :> Capture "name" Text :> QueryParam "capital" Bool :> Get '[JSON] Greet
-
-
-  :<|> "hellosnap" :> Capture "name" Text :> QueryParam "capital" Bool :> Get '[JSON] Greet
-
-  -- POST /greet with a Greet as JSON in the request body,
-  --             returns a Greet as JSON
-  :<|> "greet" :> ReqBody '[JSON] Greet :> Post '[JSON] Greet
-
-  :<|> "new" :> Capture "name" Text :> Get '[JSON] Greet
-
-  :<|> "tryLogin" :> Capture "name" Text :> Get '[JSON] Greet
-
-  :<|> "all" :> Get '[JSON] [AuthUser]
-
-  -- DELETE /greet/:greetid
-  :<|> "greet" :> Capture "greetid" Text :> Delete '[JSON] ()
-
-  :<|> "files" :> Raw
-  :<|> "doraw" :> Raw
-
-
--- Our application has some of the usual Snaplets
-data App = App {
-    _heist :: Snaplet (Heist App)
-  , _sess  :: Snaplet SessionManager
-  , _auth  :: Snaplet (AuthManager App)
-  , _db    :: Snaplet Postgres
-  }
-makeLenses ''App
-
-instance HasHeist App where
-  heistLens = subSnaplet heist
-
-instance HasPostgres (Handler b App) where
-    getPostgresState = with db get
-    setLocalPostgresState s = local (set (db . snapletValue) s)
-
-type AppHandler = Handler App App
-
-testApi :: Proxy (TestApi AppHandler)
-testApi = Proxy
-
-
--- Server-side handlers.
---
--- There's one handler per endpoint, which, just like in the type
--- that represents the API, are glued together using :<|>.
---
--- Each handler runs in the 'AppHandler' monad.
-
-server :: Server (TestApi AppHandler) '[] AppHandler
-server = helloH
-    :<|> helloH'
-    :<|> postGreetH
-    :<|> newUser
-    :<|> tryLogin
-    :<|> allUsers
-    :<|> deleteGreetH
-    :<|> serveDirectory "static"
-    :<|> doRaw
-
-  where helloH :: Text -> Maybe Bool -> AppHandler Greet
-        helloH name Nothing = helloH name (Just False)
-        helloH name (Just False) = return . Greet $ "Hello, " <> name
-        helloH name (Just True) = return . Greet . toUpper $ "Hello, " <> name
-
-        helloH' :: Text -> Maybe Bool -> (Handler App App) Greet
-        helloH' name _ = with auth $ do
-          cu <- loginByRememberToken
-          withTop sess $ getFromSession "test" >>= liftIO . putStrLn . show 
-          return (Greet $ "Hi from snaplet, " <> name
-                  <> ". Login is " <> (pack . show) cu)
-
-        postGreetH :: Greet -> (Handler App App) Greet
-        postGreetH greet = return greet
-
-        deleteGreetH _ = return ()
-
-        doRaw = with auth $ do
-          u <- currentUser
-          let spl = "tName" ## I.textSplice (maybe "NoLogin" (pack . show) u)
-          renderWithSplices "test" spl
-
-        newUser :: Text -> (Handler App App) Greet
-        newUser name = with auth $ do 
-            u <- createUser name "" >>= \u -> case u of
-                Left _   -> return u
-                Right u' -> saveUser (u' {userEmail = Data.Text.Encoding.decodeUtf8 <$>  (Just "@email")})
-            return $ Greet "added"
-
-        tryLogin :: Text -> (Handler App App) Greet
-        tryLogin name = with auth $ do 
-            u <- loginByUsername name (ClearText "") True 
-            cu <- loginByRememberToken 
-            liftIO $ putStrLn $ show cu
-            withTop sess $ setInSession "test" "asd"
-            withTop sess $ getFromSession "test" >>= liftIO . putStrLn . show 
-            case u of 
-                Right user -> return $ Greet $ pack $ show user
-                Left failure -> return $ Greet $ pack $ show failure 
-
-        allUsers :: (Handler App App) [AuthUser]
-        allUsers = do
-            results <- query_ "select * from snap_auth_user"
-            return $ (results :: [AuthUser]) 
-
 
 initApp :: SnapletInit App App
 initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
   h <- nestSnaplet "" heist $ heistInit "templates"
-  s <- nestSnaplet "sess" sess $ initCookieSessionManager "site_key.txt" "_bbsession" (Just "test") (Just 3600)
+  s <- nestSnaplet "sess" sess $ initCookieSessionManager "site_key.txt" "_session" (Just "test") (Just 3600)
   d <- nestSnaplet "db" db pgsInit
   a <- nestSnaplet "" auth $ initPostgresAuth sess d
-  addRoutes [("testCreate", testCreate)
+  addRoutes [("", serveFile "assets/index.html")
+            ,("assets", Snap.Util.FileServe.serveDirectory "assets")
+            ,("testCreate", testCreate)
             ,("testLogin", testLogin)
-            ,("api", withSession sess $ serveSnap testApi server)
-            ,("",    writeText "Hello")]
+            ,("api", withSession sess $ serveSnap testApi app)
+            ,(":rest", serveFile "assets/index.html")]
   return $ App h s a d 
 
 testLogin :: (Handler App App) () 

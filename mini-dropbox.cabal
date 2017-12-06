@@ -32,7 +32,8 @@ executable mini-dropbox
     snap-core,
     lens,
     mtl,
-    text
+    text,
+    time
   other-modules:
     Api
     App
