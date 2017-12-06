@@ -1,0 +1,13 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- heist-1.0.1.0
+- map-syntax-0.2.0.2
+- servant-snap-0.8.0.1
+- snap-1.0.0.2
+- xmlhtml-0.2.5.1
+- snap-cors-1.2.11
+- snaplet-postgresql-simple-1.0.2.0
+resolver: lts-9.14
