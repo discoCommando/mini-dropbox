@@ -23,9 +23,16 @@ dependencies:
   - mtl
   - text
   - time 
+  - elm-export
 
 executables:
   mini-dropbox:
     main: Main.hs
     source-dirs:
       - server/src
+
+  generate:
+    main: GenerateElm.hs
+    source-dirs:
+      - server/src
+      - client

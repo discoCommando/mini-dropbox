@@ -7,6 +7,43 @@ version:             0.0.0
 build-type:          Simple
 cabal-version:       >= 1.10
 
+executable generate
+  main-is: GenerateElm.hs
+  hs-source-dirs:
+    server/src,
+    client
+  build-depends:
+    base,
+    warp,
+    aeson,
+    servant-elm,
+    servant,
+    wai,
+    transformers,
+    containers,
+    heist,
+    map-syntax,
+    snap,
+    snap-server,
+    servant-snap,
+    xmlhtml,
+    snap-cors,
+    snaplet-postgresql-simple,
+    postgresql-simple,
+    snap-core,
+    lens,
+    mtl,
+    text,
+    time,
+    elm-export
+  other-modules:
+    Api
+    App
+    Main
+    Main_old
+    Models
+  default-language: Haskell2010
+
 executable mini-dropbox
   main-is: Main.hs
   hs-source-dirs:
@@ -33,7 +70,8 @@ executable mini-dropbox
     lens,
     mtl,
     text,
-    time
+    time,
+    elm-export
   other-modules:
     Api
     App
