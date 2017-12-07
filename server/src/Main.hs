@@ -50,25 +50,38 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
   s <- nestSnaplet "sess" sess $ initCookieSessionManager "site_key.txt" "_session" (Just "test") (Just 3600)
   d <- nestSnaplet "db" db pgsInit
   a <- nestSnaplet "" auth $ initPostgresAuth sess d
-  addRoutes [("", serveFile "assets/index.html")
-            ,("assets", Snap.Util.FileServe.serveDirectory "assets")
-            ,("testCreate", testCreate)
+  addRoutes [("assets", Snap.Util.FileServe.serveDirectory "assets")
+            -- ,("login/:username/:password", login)
             ,("testLogin", testLogin)
-            ,("api", withSession sess $ serveSnap testApi app)
-            ,(":rest", serveFile "assets/index.html")]
+            ,("", withSession sess $ serveSnap testApi app)
+            ,("", serveFile "assets/index.html")]
+  -- wrapHandlers tryLogin 
   return $ App h s a d 
 
-testLogin :: (Handler App App) () 
+testLogin :: (Handler App App) ()
 testLogin = with auth $ do 
-  cu <- loginByRememberToken
-  liftIO $ putStrLn $ show $ cu 
-  return ()
-
+  cu <- currentUser
+  modifyResponse $ setHeader "Content-Type" "application/json"
+  writeLBS . encode $ fmap toUser cu
+  -- return "test"
+  
 testCreate :: (Handler App App) () 
 testCreate = with auth $ do 
   cu <- loginByUsername "asd" (ClearText "") True
   liftIO $ putStrLn $ show $ cu 
   return ()
+
+tryLogin :: (Handler App App) () 
+tryLogin = with auth $ do 
+  cu <- loginByRememberToken
+  liftIO $ putStrLn $ show $ cu 
+  return ()
+
+-- testCreate :: (Handler App App) () 
+-- testCreate = with auth $ do 
+--   cu <- loginByUsername "asd" (ClearText "") True
+--   liftIO $ putStrLn $ show $ cu 
+--   return ()
 
 
 -- Run the server.

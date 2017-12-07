@@ -6,8 +6,10 @@ import           Data.Text hiding (intercalate, map)
 import           Elm (toElmDecoderSource, toElmEncoderSource, toElmTypeSource)
 
 import           Models
-import           App
+import           Api
 
+api :: Proxy (Api ())
+api = Proxy 
 
 main :: IO ()
 main = do
@@ -21,6 +23,6 @@ main = do
             toElmDecoderSource (Proxy :: Proxy FileStructure) :
             toElmTypeSource (Proxy :: Proxy User) :
             toElmDecoderSource (Proxy :: Proxy User) :
-            generateElmForAPI testApi
+            generateElmForAPI api
   writeFile "client/Api.elm" $ intercalate "\n\n" $ map unpack code  
 

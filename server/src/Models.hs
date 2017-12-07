@@ -19,33 +19,15 @@ import           GHC.Generics
 import           Snap.Snaplet.PostgresqlSimple
 import           Snap.Snaplet.Auth
 import           Database.PostgreSQL.Simple.ToField
--- import Database.Persist.TH
 import           Servant.Elm      (ElmType)
 
 import           Data.Time.Clock 
-
--- share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
--- User
---   login Text
---   password  Int
---   deriving Eq Read Show Generic 
--- Folder
---   userid Int 
---   parentid Int 
---   name Text 
---   deriving Eq Read Show Generic
--- File
---   userid Int 
---   folderid Int 
---   name Text
---   deriving Eq Read Show Generic
--- |]
 
 data Folder = Folder 
   { folderId :: Int
   , folderParentId :: Int 
   , folderName :: Text 
-  , folderUid :: Int  
+  , folderUid :: Text
   , folderInsertDate :: UTCTime
   } deriving (Eq, Show, Read, Generic)
 
@@ -53,19 +35,23 @@ data File = File
   { fileId :: Int
   , fileFolderId :: Int 
   , fileName :: Text 
-  , fileUid :: Int
+  , fileUid :: Text
   , fileSize :: Int 
   , fileInsertDate :: UTCTime
   } deriving (Eq, Show, Read, Generic)
 
 data User = User 
-  { userName :: Text
-  , userUid :: Int 
+  { userLogin :: Text
+  , userUid :: Text
   } deriving (Eq, Show, Read, Generic) 
 
 instance FromJSON User 
 instance ToJSON User 
 instance ElmType User
+
+toUser :: AuthUser -> User 
+toUser AuthUser{..} = 
+  User userLogin $ maybe "0" unUid userId 
 
 instance FromJSON Folder
 instance ToJSON Folder

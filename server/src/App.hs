@@ -16,6 +16,7 @@ import           Control.Concurrent
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Except
 import           Data.Proxy
+import           Data.Text
 import           GHC.Generics
 import           Data.Map
 import           Control.Monad.Reader
@@ -58,10 +59,44 @@ testApi = Proxy
 -- withAssets :: Proxy WithAssets
 -- withAssets = Proxy
 app :: Server (Api AppHandler) '[] AppHandler
-app = getFolderContents where 
+app = 
+  getFolderContents :<|> 
+  renameFolder      :<|> 
+  moveFolder        :<|> 
+  deleteFolder      :<|> 
+
+  renameFile        :<|>
+  moveFile          :<|>
+  deleteFile        where
+
   getFolderContents :: Int -> AppHandler FileStructure 
   getFolderContents id = 
     return $ FileStructure [] []
+
+  renameFolder      :: Int -> Text -> AppHandler FileStructure
+  renameFolder      = 
+    undefined 
+
+  moveFolder        :: Int -> Int -> AppHandler FileStructure
+  moveFolder        = 
+    undefined 
+
+  deleteFolder      :: Int -> AppHandler FileStructure
+  deleteFolder      = 
+    undefined 
+
+  renameFile        :: Int -> Text -> AppHandler FileStructure
+  renameFile        = 
+    undefined 
+
+  moveFile          :: Int -> Int -> AppHandler FileStructure
+  moveFile          = 
+    undefined 
+
+  deleteFile        :: Int -> AppHandler FileStructure
+  deleteFile        = 
+    undefined 
+
 
 
 -- server :: IO (Server WithAssets)

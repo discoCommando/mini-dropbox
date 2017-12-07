@@ -21,7 +21,16 @@ import           Data.Text
 import           Models
 
 type Paths m = 
-  "folder" :> Capture "folderid" Int :> Get '[JSON] FileStructure
+  --test 
+  "folder"  :> Capture "folderid" Int                               :> Get '[JSON] FileStructure    :<|>
+  "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
+  "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
+  "folder"  :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
+  "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Put '[JSON] FileStructure    :<|>
+
+  "file"    :> Capture "fileid" Int   :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
+  "file"    :> Capture "fileid" Int   :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
+  "file"    :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure 
 
 
 type Api m = "api" :> Paths m
