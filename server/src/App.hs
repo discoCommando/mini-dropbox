@@ -60,14 +60,20 @@ testApi = Proxy
 -- withAssets = Proxy
 app :: Server (Api AppHandler) '[] AppHandler
 app = 
-  getFolderContents :<|> 
+  (getFolderContents :<|> 
   renameFolder      :<|> 
   moveFolder        :<|> 
   deleteFolder      :<|> 
-
+  
   renameFile        :<|>
   moveFile          :<|>
-  deleteFile        where
+  deleteFile        )
+
+  :<|> 
+
+  (testLogin         :<|> 
+  login              :<|>
+  register          )where
 
   getFolderContents :: Int -> AppHandler FileStructure 
   getFolderContents id = 
@@ -96,6 +102,15 @@ app =
   deleteFile        :: Int -> AppHandler FileStructure
   deleteFile        = 
     undefined 
+
+  testLogin         :: AppHandler (Maybe User)
+  testLogin          = undefined
+
+  login             :: LoginForm -> AppHandler (Maybe User)
+  login loginForm    = undefined
+
+  register          :: LoginForm -> AppHandler (Maybe User)
+  register loginForm = undefined
 
 
 

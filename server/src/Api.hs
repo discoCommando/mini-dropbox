@@ -26,14 +26,20 @@ type Paths m =
   "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
   "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
   "folder"  :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
-  "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Put '[JSON] FileStructure    :<|>
+  -- "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Put '[JSON] FileStructure    :<|>
 
   "file"    :> Capture "fileid" Int   :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
   "file"    :> Capture "fileid" Int   :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
   "file"    :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure 
 
 
-type Api m = "api" :> Paths m
+-- dummy paths that are handled in main, not by servant, but they will be helpful for generating elm code 
+type DummyPaths m = 
+  "testLogin" :>                              Get '[JSON] (Maybe User) :<|>
+  "login"     :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Maybe User):<|>
+  "register"  :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Maybe User)
+
+type Api m = "api" :> Paths m :<|> DummyPaths m 
 
 -- type Api = 
 --   "api" :> ("files" :> Capture "folderid" Int :> Get '[JSON] FileStructure :<|>

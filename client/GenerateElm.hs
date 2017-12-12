@@ -23,6 +23,8 @@ main = do
             toElmDecoderSource (Proxy :: Proxy FileStructure) :
             toElmTypeSource (Proxy :: Proxy User) :
             toElmDecoderSource (Proxy :: Proxy User) :
+            toElmTypeSource (Proxy :: Proxy LoginForm) :
+            toElmDecoderSource (Proxy :: Proxy LoginForm) :
             generateElmForAPI api
   writeFile "client/Api.elm" $ intercalate "\n\n" $ map unpack code  
 

@@ -51,8 +51,10 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
   d <- nestSnaplet "db" db pgsInit
   a <- nestSnaplet "" auth $ initPostgresAuth sess d
   addRoutes [("assets", Snap.Util.FileServe.serveDirectory "assets")
-            -- ,("login/:username/:password", login)
+            ,("login", login)
+            ,("register", register)
             ,("testLogin", testLogin)
+            ,("testCreate", testCreate)
             ,("", withSession sess $ serveSnap testApi app)
             ,("", serveFile "assets/index.html")]
   -- wrapHandlers tryLogin 
@@ -67,8 +69,10 @@ testLogin = with auth $ do
   
 testCreate :: (Handler App App) () 
 testCreate = with auth $ do 
-  cu <- loginByUsername "asd" (ClearText "") True
-  liftIO $ putStrLn $ show $ cu 
+  u <- createUser "asd" "" >>= \u -> case u of
+                Left _   -> return u
+                Right u' -> saveUser u'
+  liftIO $ putStrLn $ show $ u
   return ()
 
 tryLogin :: (Handler App App) () 
@@ -76,6 +80,38 @@ tryLogin = with auth $ do
   cu <- loginByRememberToken
   liftIO $ putStrLn $ show $ cu 
   return ()
+
+login :: (Handler App App) () 
+login = do 
+  reqBody <- readRequestBody 2048 
+  result <- return (Data.Aeson.decode reqBody :: Maybe LoginForm)
+  modifyResponse $ setHeader "Content-Type" "application/json"
+  case result of 
+    Just loginForm -> with auth $ do
+      cu <- loginByUsername (username loginForm) (ClearText $ encodeUtf8 $ password loginForm) True 
+      case cu of 
+        Right user -> writeLBS . encode $ fmap toUser (Just user)
+        Left _ -> writeLBS . encode $ (Nothing :: Maybe User)
+    _ -> 
+      writeLBS . encode $ (Nothing :: Maybe User)
+
+
+register :: (Handler App App) () 
+register = do 
+  reqBody <- readRequestBody 2048 
+  result <- return (Data.Aeson.decode reqBody :: Maybe LoginForm)
+  modifyResponse $ setHeader "Content-Type" "application/json"
+  case result of 
+    Just LoginForm{..} -> with auth $ do
+      u <- createUser username (encodeUtf8 password) >>= \u -> case u of
+                Left _   -> return u
+                Right u' -> saveUser u'
+      -- cu <- loginByUsername (username loginForm) (ClearText $ encodeUtf8 $ password loginForm) True 
+      case u of 
+        Right user -> writeLBS . encode $ fmap toUser (Just user)
+        Left _ -> writeLBS . encode $ (Nothing :: Maybe User)
+    _ -> 
+      writeLBS . encode $ (Nothing :: Maybe User)
 
 -- testCreate :: (Handler App App) () 
 -- testCreate = with auth $ do 

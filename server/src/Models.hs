@@ -45,9 +45,18 @@ data User = User
   , userUid :: Text
   } deriving (Eq, Show, Read, Generic) 
 
+data LoginForm = LoginForm 
+  { username :: Text
+  , password :: Text 
+  } deriving (Eq, Show, Read, Generic) 
+
 instance FromJSON User 
 instance ToJSON User 
 instance ElmType User
+
+instance FromJSON LoginForm 
+instance ToJSON LoginForm 
+instance ElmType LoginForm
 
 toUser :: AuthUser -> User 
 toUser AuthUser{..} = 
