@@ -19,9 +19,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation
-
-
---import Api
+import Api
 
 
 type Msg
