@@ -20,34 +20,61 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation
 import Api
+import Http
 
 
 type Msg
     = Login
     | Register
     | TabMsg Tab.State
+    | LoginResult (Result Http.Error (Maybe Api.User))
+    | UsernameSet String
+    | PasswordSet String
 
 
 type alias Model =
-    { tabState : Tab.State }
+    { tabState : Tab.State
+    , username : String
+    , password : String
+    , loginError : Maybe String
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    { tabState = Tab.initialState } ! []
+    { tabState = Tab.initialState
+    , username = ""
+    , password = ""
+    , loginError = Nothing
+    }
+        ! []
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Login ->
-            model ! []
+            { model | loginError = Nothing } ! [ Api.postLogin { username = model.username, password = model.password } |> Http.send LoginResult ]
 
         Register ->
             model ! []
 
         TabMsg state ->
             { model | tabState = state } ! []
+
+        LoginResult res ->
+            case Debug.log "res" res of
+                Ok (Just user) ->
+                    model ! [ Navigation.newUrl "main" ]
+
+                _ ->
+                    { model | loginError = Just "Wrong username or password" } ! []
+
+        UsernameSet s ->
+            { model | username = s } ! []
+
+        PasswordSet s ->
+            { model | password = s } ! []
 
 
 view : Model -> Html Msg
@@ -84,31 +111,39 @@ view model =
                                                 [ Grid.container []
                                                     [ Grid.row
                                                         []
-                                                        [ Grid.col []
-                                                            [ Form.group []
-                                                                [ InputGroup.config
-                                                                    (InputGroup.text
-                                                                        [ Input.attrs [ placeholder "Username" ]
+                                                        [ Grid.col [] <|
+                                                            List.concat
+                                                                [ case model.loginError of
+                                                                    Just error ->
+                                                                        [ text error ]
+
+                                                                    _ ->
+                                                                        []
+                                                                , [ Form.group []
+                                                                        [ InputGroup.config
+                                                                            (InputGroup.text
+                                                                                [ Input.attrs [ placeholder "Username", onInput UsernameSet ]
+                                                                                ]
+                                                                            )
+                                                                            |> InputGroup.successors
+                                                                                [ InputGroup.span [] [ i [ class "fa fa-user", attribute "aria-hidden" "true" ] [] ] ]
+                                                                            |> InputGroup.view
                                                                         ]
-                                                                    )
-                                                                    |> InputGroup.successors
-                                                                        [ InputGroup.span [] [ i [ class "fa fa-user", attribute "aria-hidden" "true" ] [] ] ]
-                                                                    |> InputGroup.view
+                                                                  , Form.group []
+                                                                        [ InputGroup.config
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput PasswordSet ] ])
+                                                                            |> InputGroup.successors
+                                                                                [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
+                                                                            |> InputGroup.view
+                                                                        ]
+                                                                  , Button.button
+                                                                        [ Button.primary
+                                                                        , Button.block
+                                                                        , Button.attrs [ onClick Login ]
+                                                                        ]
+                                                                        [ text "Sign in" ]
+                                                                  ]
                                                                 ]
-                                                            , Form.group []
-                                                                [ InputGroup.config
-                                                                    (InputGroup.password [ Input.attrs [ placeholder "Password" ] ])
-                                                                    |> InputGroup.successors
-                                                                        [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
-                                                                    |> InputGroup.view
-                                                                ]
-                                                            , Button.button
-                                                                [ Button.primary
-                                                                , Button.block
-                                                                , Button.attrs [ onClick Login ]
-                                                                ]
-                                                                [ text "Sign in" ]
-                                                            ]
                                                         ]
                                                     ]
                                                 ]
