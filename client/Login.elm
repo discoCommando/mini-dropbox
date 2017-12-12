@@ -28,24 +28,36 @@ type Msg
     | Register
     | TabMsg Tab.State
     | LoginResult (Result Http.Error (Maybe Api.User))
-    | UsernameSet String
-    | PasswordSet String
+    | LoginUsernameSet String
+    | LoginPasswordSet String
+    | RegisterResult (Result Http.Error (Maybe Api.User))
+    | RegisterUsernameSet String
+    | RegisterPasswordSet String
+    | RegisterConfirmPasswordSet String
 
 
 type alias Model =
     { tabState : Tab.State
-    , username : String
-    , password : String
+    , loginUsername : String
+    , loginPassword : String
     , loginError : Maybe String
+    , registerUsername : String
+    , registerPassword : String
+    , registerConfirmPassword : String
+    , registerError : Maybe String
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     { tabState = Tab.initialState
-    , username = ""
-    , password = ""
+    , loginUsername = ""
+    , loginPassword = ""
     , loginError = Nothing
+    , registerUsername = ""
+    , registerPassword = ""
+    , registerConfirmPassword = ""
+    , registerError = Nothing
     }
         ! []
 
@@ -54,10 +66,15 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Login ->
-            { model | loginError = Nothing } ! [ Api.postLogin { username = model.username, password = model.password } |> Http.send LoginResult ]
+            { model | loginError = Nothing } ! [ Api.postLogin { username = model.loginUsername, password = model.loginPassword } |> Http.send LoginResult ]
 
         Register ->
-            model ! []
+            case model.registerPassword == model.registerConfirmPassword of
+                True ->
+                    { model | registerError = Nothing } ! [ Api.postRegister { username = model.registerUsername, password = model.registerPassword } |> Http.send RegisterResult ]
+
+                False ->
+                    { model | registerError = Just "Password are not the same" } ! []
 
         TabMsg state ->
             { model | tabState = state } ! []
@@ -70,11 +87,28 @@ update msg model =
                 _ ->
                     { model | loginError = Just "Wrong username or password" } ! []
 
-        UsernameSet s ->
-            { model | username = s } ! []
+        LoginUsernameSet s ->
+            { model | loginUsername = s } ! []
 
-        PasswordSet s ->
-            { model | password = s } ! []
+        LoginPasswordSet s ->
+            { model | loginPassword = s } ! []
+
+        RegisterResult res ->
+            case Debug.log "res" res of
+                Ok (Just user) ->
+                    model ! [ Navigation.newUrl "main" ]
+
+                _ ->
+                    { model | registerError = Just "Username already exists" } ! []
+
+        RegisterUsernameSet s ->
+            { model | registerUsername = s } ! []
+
+        RegisterPasswordSet s ->
+            { model | registerPassword = s } ! []
+
+        RegisterConfirmPasswordSet s ->
+            { model | registerConfirmPassword = s } ! []
 
 
 view : Model -> Html Msg
@@ -122,7 +156,7 @@ view model =
                                                                 , [ Form.group []
                                                                         [ InputGroup.config
                                                                             (InputGroup.text
-                                                                                [ Input.attrs [ placeholder "Username", onInput UsernameSet ]
+                                                                                [ Input.attrs [ placeholder "Username", onInput LoginUsernameSet ]
                                                                                 ]
                                                                             )
                                                                             |> InputGroup.successors
@@ -131,7 +165,7 @@ view model =
                                                                         ]
                                                                   , Form.group []
                                                                         [ InputGroup.config
-                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput PasswordSet ] ])
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput LoginPasswordSet ] ])
                                                                             |> InputGroup.successors
                                                                                 [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
                                                                             |> InputGroup.view
@@ -156,38 +190,46 @@ view model =
                                                 [ Grid.container []
                                                     [ Grid.row
                                                         []
-                                                        [ Grid.col []
-                                                            [ Form.group []
-                                                                [ InputGroup.config
-                                                                    (InputGroup.text
-                                                                        [ Input.attrs [ placeholder "Username" ]
+                                                        [ Grid.col [] <|
+                                                            List.concat
+                                                                [ case model.registerError of
+                                                                    Just error ->
+                                                                        [ text error ]
+
+                                                                    _ ->
+                                                                        []
+                                                                , [ Form.group []
+                                                                        [ InputGroup.config
+                                                                            (InputGroup.text
+                                                                                [ Input.attrs [ placeholder "Username", onInput RegisterUsernameSet ]
+                                                                                ]
+                                                                            )
+                                                                            |> InputGroup.successors
+                                                                                [ InputGroup.span [] [ i [ class "fa fa-user", attribute "aria-hidden" "true" ] [] ] ]
+                                                                            |> InputGroup.view
                                                                         ]
-                                                                    )
-                                                                    |> InputGroup.successors
-                                                                        [ InputGroup.span [] [ i [ class "fa fa-user", attribute "aria-hidden" "true" ] [] ] ]
-                                                                    |> InputGroup.view
+                                                                  , Form.group []
+                                                                        [ InputGroup.config
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput RegisterPasswordSet ] ])
+                                                                            |> InputGroup.successors
+                                                                                [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
+                                                                            |> InputGroup.view
+                                                                        ]
+                                                                  , Form.group []
+                                                                        [ InputGroup.config
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Confirm Password", onInput RegisterConfirmPasswordSet ] ])
+                                                                            |> InputGroup.successors
+                                                                                [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
+                                                                            |> InputGroup.view
+                                                                        ]
+                                                                  , Button.button
+                                                                        [ Button.success
+                                                                        , Button.block
+                                                                        , Button.attrs [ onClick Register ]
+                                                                        ]
+                                                                        [ text "Sign up" ]
+                                                                  ]
                                                                 ]
-                                                            , Form.group []
-                                                                [ InputGroup.config
-                                                                    (InputGroup.password [ Input.attrs [ placeholder "Password" ] ])
-                                                                    |> InputGroup.successors
-                                                                        [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
-                                                                    |> InputGroup.view
-                                                                ]
-                                                            , Form.group []
-                                                                [ InputGroup.config
-                                                                    (InputGroup.password [ Input.attrs [ placeholder "Confirm Password" ] ])
-                                                                    |> InputGroup.successors
-                                                                        [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
-                                                                    |> InputGroup.view
-                                                                ]
-                                                            , Button.button
-                                                                [ Button.success
-                                                                , Button.block
-                                                                , Button.attrs [ onClick Register ]
-                                                                ]
-                                                                [ text "Sign up" ]
-                                                            ]
                                                         ]
                                                     ]
                                                 ]
