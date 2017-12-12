@@ -158,7 +158,7 @@ view model =
                                                                 , [ Form.group []
                                                                         [ InputGroup.config
                                                                             (InputGroup.text
-                                                                                [ Input.attrs [ placeholder "Username", onInput LoginUsernameSet ]
+                                                                                [ Input.attrs [ placeholder "Username", onInput LoginUsernameSet, value model.loginUsername ]
                                                                                 ]
                                                                             )
                                                                             |> InputGroup.successors
@@ -167,7 +167,7 @@ view model =
                                                                         ]
                                                                   , Form.group []
                                                                         [ InputGroup.config
-                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput LoginPasswordSet ] ])
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput LoginPasswordSet, value model.loginPassword ] ])
                                                                             |> InputGroup.successors
                                                                                 [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
                                                                             |> InputGroup.view
@@ -203,7 +203,7 @@ view model =
                                                                 , [ Form.group []
                                                                         [ InputGroup.config
                                                                             (InputGroup.text
-                                                                                [ Input.attrs [ placeholder "Username", onInput RegisterUsernameSet ]
+                                                                                [ Input.attrs [ placeholder "Username", onInput RegisterUsernameSet, value model.registerUsername ]
                                                                                 ]
                                                                             )
                                                                             |> InputGroup.successors
@@ -212,14 +212,14 @@ view model =
                                                                         ]
                                                                   , Form.group []
                                                                         [ InputGroup.config
-                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput RegisterPasswordSet ] ])
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Password", onInput RegisterPasswordSet, value model.registerPassword ] ])
                                                                             |> InputGroup.successors
                                                                                 [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
                                                                             |> InputGroup.view
                                                                         ]
                                                                   , Form.group []
                                                                         [ InputGroup.config
-                                                                            (InputGroup.password [ Input.attrs [ placeholder "Confirm Password", onInput RegisterConfirmPasswordSet ] ])
+                                                                            (InputGroup.password [ Input.attrs [ placeholder "Confirm Password", onInput RegisterConfirmPasswordSet, value model.registerConfirmPassword ] ])
                                                                             |> InputGroup.successors
                                                                                 [ InputGroup.span [] [ i [ class "fa fa-lock", attribute "aria-hidden" "true" ] [] ] ]
                                                                             |> InputGroup.view

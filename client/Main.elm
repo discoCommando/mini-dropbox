@@ -257,7 +257,7 @@ view state =
                     Settings.view settings |> Html.map SettingsMsg
 
                 NotFound ->
-                    text "NotFound"
+                    text ""
 
         _ ->
             text ""
