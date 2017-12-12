@@ -20,6 +20,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation
 import Helpers
+import Api
 
 
 type Msg
@@ -34,11 +35,12 @@ type alias Model =
     { dropdownState : Dropdown.State
     , fileDropdowns : List Dropdown.State
     , helpers : Helpers.Model
+    , user : Api.User
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Api.User -> ( Model, Cmd Msg )
+init user =
     let
         ( helpers, cmd ) =
             Helpers.init
@@ -47,6 +49,7 @@ init =
         , dropdownState = Dropdown.initialState
         , fileDropdowns =
             List.repeat 4 Dropdown.initialState
+        , user = user
         }
             ! [ cmd |> Cmd.map HelpersMsg ]
 

@@ -45,6 +45,7 @@ type alias Model =
     , registerPassword : String
     , registerConfirmPassword : String
     , registerError : Maybe String
+    , user : Maybe Api.User
     }
 
 
@@ -58,6 +59,7 @@ init =
     , registerPassword = ""
     , registerConfirmPassword = ""
     , registerError = Nothing
+    , user = Nothing
     }
         ! []
 
@@ -82,7 +84,7 @@ update msg model =
         LoginResult res ->
             case Debug.log "res" res of
                 Ok (Just user) ->
-                    model ! [ Navigation.newUrl "main" ]
+                    { model | user = Just user } ! [ Navigation.newUrl "main" ]
 
                 _ ->
                     { model | loginError = Just "Wrong username or password" } ! []

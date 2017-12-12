@@ -19,6 +19,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation
+import Http
+import Api
 
 
 type Msg
@@ -54,7 +56,7 @@ update msg model =
             model ! [ Navigation.newUrl "settings" ]
 
         Logout ->
-            model ! [ Navigation.newUrl "index.html" ]
+            model ! [ Navigation.newUrl "logout" ]
 
 
 viewLoggedIn : Model -> (Msg -> msg) -> Html msg -> Html msg

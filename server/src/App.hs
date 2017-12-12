@@ -64,7 +64,7 @@ app =
   renameFolder      :<|> 
   moveFolder        :<|> 
   deleteFolder      :<|> 
-  
+
   renameFile        :<|>
   moveFile          :<|>
   deleteFile        )
@@ -73,7 +73,8 @@ app =
 
   (testLogin         :<|> 
   login              :<|>
-  register          )where
+  register           :<|>
+  logout          )where
 
   getFolderContents :: Int -> AppHandler FileStructure 
   getFolderContents id = 
@@ -111,6 +112,9 @@ app =
 
   register          :: LoginForm -> AppHandler (Maybe User)
   register loginForm = undefined
+
+  logout          :: AppHandler ()
+  logout             = undefined
 
 
 

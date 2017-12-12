@@ -35,9 +35,10 @@ type Paths m =
 
 -- dummy paths that are handled in main, not by servant, but they will be helpful for generating elm code 
 type DummyPaths m = 
-  "testLogin" :>                              Get '[JSON] (Maybe User) :<|>
+  "testLogin" :>                              Post '[JSON] (Maybe User) :<|>
   "login"     :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Maybe User):<|>
-  "register"  :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Maybe User)
+  "register"  :> ReqBody '[JSON] LoginForm :> Post '[JSON] (Maybe User):<|>
+  "logout"    :>                              Post '[JSON] ()
 
 type Api m = "api" :> Paths m :<|> DummyPaths m 
 

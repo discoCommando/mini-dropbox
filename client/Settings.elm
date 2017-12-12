@@ -20,9 +20,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation
 import Helpers
-
-
---import Api
+import Api
 
 
 type Msg
@@ -32,16 +30,17 @@ type Msg
 
 type alias Model =
     { helpers : Helpers.Model
+    , user : Api.User
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Api.User -> ( Model, Cmd Msg )
+init user =
     let
         ( helpers, cmd ) =
             Helpers.init
     in
-        { helpers = helpers } ! [ cmd |> Cmd.map HelpersMsg ]
+        { helpers = helpers, user = user } ! [ cmd |> Cmd.map HelpersMsg ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

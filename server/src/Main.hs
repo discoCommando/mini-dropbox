@@ -53,8 +53,8 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
   addRoutes [("assets", Snap.Util.FileServe.serveDirectory "assets")
             ,("login", login)
             ,("register", register)
+            ,("logout", Main.logout)
             ,("testLogin", testLogin)
-            ,("testCreate", testCreate)
             ,("", withSession sess $ serveSnap testApi app)
             ,("", serveFile "assets/index.html")]
   -- wrapHandlers tryLogin 
@@ -65,15 +65,6 @@ testLogin = with auth $ do
   cu <- currentUser
   modifyResponse $ setHeader "Content-Type" "application/json"
   writeLBS . encode $ fmap toUser cu
-  -- return "test"
-  
-testCreate :: (Handler App App) () 
-testCreate = with auth $ do 
-  u <- createUser "asd" "" >>= \u -> case u of
-                Left _   -> return u
-                Right u' -> saveUser u'
-  liftIO $ putStrLn $ show $ u
-  return ()
 
 tryLogin :: (Handler App App) () 
 tryLogin = with auth $ do 
@@ -95,6 +86,11 @@ login = do
     _ -> 
       writeLBS . encode $ (Nothing :: Maybe User)
 
+logout :: (Handler App App) () 
+logout = with auth $ do 
+  Snap.Snaplet.Auth.logout 
+  modifyResponse $ setHeader "Content-Type" "application/json"
+  writeLBS . encode $ ()
 
 register :: (Handler App App) () 
 register = do 
