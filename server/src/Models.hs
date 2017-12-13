@@ -14,6 +14,7 @@ module Models where
 
 import           Data.Aeson
 import           Data.Text
+import           Data.Text.Read
 
 import           GHC.Generics
 import           Snap.Snaplet.PostgresqlSimple
@@ -21,6 +22,7 @@ import           Snap.Snaplet.Auth
 import           Database.PostgreSQL.Simple.ToField
 import           Servant.Elm      (ElmType)
 
+import           Data.HashMap.Lazy
 import           Data.Time.Clock 
 
 data Folder = Folder 
@@ -43,6 +45,8 @@ data File = File
 data User = User 
   { userLogin :: Text
   , userUid :: Text
+  , userPassword :: Text 
+  , userPreference :: Int 
   } deriving (Eq, Show, Read, Generic) 
 
 data LoginForm = LoginForm 
@@ -58,9 +62,20 @@ instance FromJSON LoginForm
 instance ToJSON LoginForm 
 instance ElmType LoginForm
 
+result :: a -> Result a -> a 
+result def res = 
+  case res of 
+    Success a -> a 
+    _ -> def
+
 toUser :: AuthUser -> User 
 toUser AuthUser{..} = 
-  User userLogin $ maybe "0" unUid userId 
+  User userLogin (maybe "0" unUid userId) "" preference
+  where 
+    preference :: Int 
+    preference = case Data.Text.Read.decimal $ maybe "" id userEmail of 
+      Right (x, _) -> x 
+      _ -> 0 
 
 instance FromJSON Folder
 instance ToJSON Folder

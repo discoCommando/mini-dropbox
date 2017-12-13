@@ -22,15 +22,17 @@ import           Models
 
 type Paths m = 
   --test 
-  "folder"  :> Capture "folderid" Int                               :> Get '[JSON] FileStructure    :<|>
+  "folder"              :> Capture "folderid" Int                               :> Get '[JSON] FileStructure    :<|>
   "folder"  :> "rename" :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
   "folder"  :> "move"   :> Capture "folderid" Int :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
-  "folder"  :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
+  "folder"              :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
   -- "folder"  :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Put '[JSON] FileStructure    :<|>
 
   "file"    :> "rename" :> Capture "fileid" Int   :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
   "file"    :> "move"   :> Capture "fileid" Int   :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
-  "file"    :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure 
+  "file"                :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure :<|>
+
+  "user"                                          :> ReqBody '[JSON] User       :> Post '[JSON] (Maybe User)
 
 
 -- dummy paths that are handled in main, not by servant, but they will be helpful for generating elm code 

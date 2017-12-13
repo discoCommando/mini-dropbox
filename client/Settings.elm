@@ -21,16 +21,25 @@ import Html.Events exposing (..)
 import Navigation
 import Helpers
 import Api
+import Http
 
 
 type Msg
     = HelpersMsg Helpers.Msg
+    | UsernameSet String
+    | PasswordSet String
+    | PreferenceSet Int
     | Submit
+    | SubmitResult (Result Http.Error (Maybe Api.User))
 
 
 type alias Model =
     { helpers : Helpers.Model
     , user : Api.User
+    , username : String
+    , password : String
+    , preference : Int
+    , error : Maybe String
     }
 
 
@@ -40,7 +49,14 @@ init user =
         ( helpers, cmd ) =
             Helpers.init
     in
-        { helpers = helpers, user = user } ! [ cmd |> Cmd.map HelpersMsg ]
+        { helpers = helpers
+        , user = user
+        , username = user.userLogin
+        , password = ""
+        , preference = user.userPreference
+        , error = Nothing
+        }
+            ! [ cmd |> Cmd.map HelpersMsg ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -54,7 +70,36 @@ update msg model =
                 { model | helpers = helpers } ! [ cmd |> Cmd.map HelpersMsg ]
 
         Submit ->
-            model ! []
+            let
+                user =
+                    model.user
+            in
+                { model | error = Nothing }
+                    ! [ Api.postApiUser
+                            { user
+                                | userLogin = model.username
+                                , userPassword = model.password
+                                , userPreference = model.preference
+                            }
+                            |> Http.send SubmitResult
+                      ]
+
+        SubmitResult res ->
+            case res of
+                Ok (Just user) ->
+                    { model | user = user } ! [ Navigation.newUrl "main" ]
+
+                _ ->
+                    { model | error = Just "Username already exists" } ! []
+
+        UsernameSet s ->
+            { model | username = s, error = Nothing } ! []
+
+        PasswordSet s ->
+            { model | password = s } ! []
+
+        PreferenceSet i ->
+            { model | preference = i } ! []
 
 
 view : Model -> Html Msg
@@ -72,25 +117,33 @@ viewContent model =
             ]
         , Grid.row []
             [ Grid.col [ Col.md6, Col.attrs [ class "text-left" ] ]
-                [ Form.form []
-                    [ Form.group []
-                        [ Form.label [] [ text "Login" ]
-                        , Input.text []
+                [ Form.form [] <|
+                    List.concat
+                        [ case model.error of
+                            Just error ->
+                                [ text error ]
+
+                            _ ->
+                                []
+                        , [ Form.group []
+                                [ Form.label [] [ text "Login" ]
+                                , Input.text [ Input.attrs [ onInput UsernameSet, value model.username ] ]
+                                ]
+                          , Form.group []
+                                [ Form.label [] [ text "Password" ]
+                                , Input.password [ Input.attrs [ onInput PasswordSet, value model.password ] ]
+                                , Form.help [] [ text "Make sure your password is safe!" ]
+                                ]
+                          , Form.group []
+                                [ Form.label [ for "myselect" ] [ text "Theme" ]
+                                , Select.select [ Select.id "myselect" ]
+                                    [ Select.item [ onClick <| PreferenceSet 0, selected <| model.preference == 0 ] [ text "Light" ]
+                                    , Select.item [ onClick <| PreferenceSet 1, selected <| model.preference == 1 ] [ text "Dark" ]
+                                    ]
+                                ]
+                          , Button.button [ Button.primary, Button.onClick Submit ] [ text "Submit" ]
+                          ]
                         ]
-                    , Form.group []
-                        [ Form.label [] [ text "Password" ]
-                        , Input.password []
-                        , Form.help [] [ text "Make sure your password is safe!" ]
-                        ]
-                    , Form.group []
-                        [ Form.label [ for "myselect" ] [ text "Theme" ]
-                        , Select.select [ Select.id "myselect" ]
-                            [ Select.item [] [ text "Light" ]
-                            , Select.item [] [ text "Dark" ]
-                            ]
-                        ]
-                    , Button.button [ Button.primary, Button.onClick Submit ] [ text "Submit" ]
-                    ]
                 ]
             ]
         ]

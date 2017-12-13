@@ -27,6 +27,7 @@ main = do
             toElmDecoderSource (Proxy :: Proxy FileStructure) :
             toElmTypeSource (Proxy :: Proxy User) :
             toElmDecoderSource (Proxy :: Proxy User) :
+            toElmEncoderSource (Proxy :: Proxy User) :
             toElmTypeSource (Proxy :: Proxy LoginForm) :
             toElmDecoderSource (Proxy :: Proxy LoginForm) :
             toElmEncoderSource (Proxy :: Proxy LoginForm) :

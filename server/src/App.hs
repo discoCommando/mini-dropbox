@@ -17,6 +17,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Except
 import           Data.Proxy
 import           Data.Text
+import           Data.Text.Encoding
 import           GHC.Generics
 import           Data.Map
 import           Control.Monad.Reader
@@ -28,6 +29,8 @@ import           Snap.Snaplet.PostgresqlSimple
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.Session
 import           Snap.Snaplet.Heist
+import           Data.HashMap.Lazy
+import           Data.Aeson
 
 import           Api
 import           Models
@@ -67,7 +70,8 @@ app =
 
   renameFile        :<|>
   moveFile          :<|>
-  deleteFile        )
+  deleteFile        :<|>
+  user)
 
   :<|> 
 
@@ -104,6 +108,21 @@ app =
   deleteFile        = 
     undefined 
 
+  user              :: User -> AppHandler (Maybe User)
+  user userData     = with auth $ do 
+    cu <- currentUser 
+    case cu of 
+      Nothing -> return Nothing 
+      Just u -> do  
+        result <- saveUser $ u { Snap.Snaplet.Auth.userLogin = Models.userLogin userData, 
+                                 Snap.Snaplet.Auth.userPassword = Just $ ClearText $ encodeUtf8 $ Models.userPassword userData,
+                                 -- hack because userMeta does not work with postgres backend
+                                 userEmail = Just $ pack $ show $ Models.userPreference userData
+                                }
+        case result of 
+          Right cu' -> return $ Just $ toUser cu'
+          Left _ -> return Nothing 
+
   testLogin         :: AppHandler (Maybe User)
   testLogin          = undefined
 
@@ -113,71 +132,8 @@ app =
   register          :: LoginForm -> AppHandler (Maybe User)
   register loginForm = undefined
 
-  logout          :: AppHandler ()
+  logout            :: AppHandler ()
   logout             = undefined
 
 
 
--- server :: IO (Server WithAssets)
--- server = do
---   assets <- serveAssets
---   db <- mkDB
---   return $ apiServer db :<|> serveDirectory "assets/index.html"
-
--- apiServer :: DB -> Server Api
--- apiServer db =
---   listItems db :<|>
---   getItem db :<|>
---   postItem db :<|>
---   deleteItem db
-
--- apiServer :: DB -> Server Api
--- apiServer db =
---   listFiles db :<|>
---   listItems db :<|>
---   getItem db :<|>
---   postItem db :<|>
---   deleteItem db
-
--- listFiles :: DB -> Int -> Handler FileStructure
--- listFiles db id = 
---   return $ FileStructure [File 1 id "test"] []
-
--- listItems :: DB -> Handler [ItemId]
--- listItems db = liftIO $ allItemIds db
-
--- getItem :: DB -> ItemId -> Handler Item
--- getItem db n = maybe (throwE err404) return =<< liftIO (lookupItem db n)
-
--- postItem :: DB -> String -> Handler ItemId
--- postItem db new =
---   liftIO $ insertItem db new
-
--- -- fake DB
-
--- data DB = DB (MVar (Map ItemId String))
-
--- debug :: DB -> IO ()
--- debug (DB mvar) = readMVar mvar >>= print
-
--- mkDB :: IO DB
--- mkDB = DB <$> newMVar empty
-
--- insertItem :: DB -> String -> IO ItemId
--- insertItem (DB mvar) new = modifyMVar mvar $ \ m -> do
---   let newKey = case keys m of
---         [] -> 0
---         ks -> succ (maximum ks)
---   return (insert newKey new m, newKey)
-
--- lookupItem :: DB -> ItemId -> IO (Maybe Item)
--- lookupItem (DB mvar) i = do
---   fmap (Item i) <$> Data.Map.lookup i <$> readMVar mvar
-
--- allItemIds :: DB -> IO [ItemId]
--- allItemIds (DB mvar) =
---   keys <$> readMVar mvar
-
--- deleteItem :: MonadIO m => DB -> ItemId -> m ItemId
--- deleteItem (DB mvar) i = liftIO $ modifyMVar mvar $ \ m -> do
---   return (delete i m, i)

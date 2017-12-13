@@ -90,7 +90,7 @@ update msg model =
                     { model | loginError = Just "Wrong username or password" } ! []
 
         LoginUsernameSet s ->
-            { model | loginUsername = s } ! []
+            { model | loginUsername = s, loginError = Nothing } ! []
 
         LoginPasswordSet s ->
             { model | loginPassword = s } ! []
@@ -104,7 +104,7 @@ update msg model =
                     { model | registerError = Just "Username already exists" } ! []
 
         RegisterUsernameSet s ->
-            { model | registerUsername = s } ! []
+            { model | registerUsername = s, registerError = Nothing } ! []
 
         RegisterPasswordSet s ->
             { model | registerPassword = s } ! []

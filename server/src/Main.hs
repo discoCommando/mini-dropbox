@@ -39,6 +39,7 @@ import           Servant.API
 import           Servant (serveSnap, Server, serveDirectory)
 import           Models 
 import           App
+import           Data.HashMap.Lazy
 
 -- * Example
 
@@ -102,18 +103,11 @@ register = do
       u <- createUser username (encodeUtf8 password) >>= \u -> case u of
                 Left _   -> return u
                 Right u' -> saveUser u'
-      -- cu <- loginByUsername (username loginForm) (ClearText $ encodeUtf8 $ password loginForm) True 
       case u of 
         Right user -> writeLBS . encode $ fmap toUser (Just user)
         Left _ -> writeLBS . encode $ (Nothing :: Maybe User)
     _ -> 
       writeLBS . encode $ (Nothing :: Maybe User)
-
--- testCreate :: (Handler App App) () 
--- testCreate = with auth $ do 
---   cu <- loginByUsername "asd" (ClearText "") True
---   liftIO $ putStrLn $ show $ cu 
---   return ()
 
 
 -- Run the server.

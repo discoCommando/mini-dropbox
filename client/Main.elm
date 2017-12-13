@@ -178,11 +178,17 @@ urlChange model location =
                 Login loginModel ->
                     loginModel.user
 
+                Settings settingsModel ->
+                    Just settingsModel.user
+
                 _ ->
                     model.user
 
         ( page, pageCmd ) =
             locationToPage user location
+
+        _ =
+            Debug.log location.pathname page
     in
         { model | page = page, user = user } ! [ pageCmd ]
 
