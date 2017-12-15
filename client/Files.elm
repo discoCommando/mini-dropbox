@@ -43,6 +43,9 @@ type Msg
     | RenameFileNameSet String
     | RenameFileResult (Result Http.Error Api.FileStructure)
     | RenameFileInit File
+    | DeleteFile File
+    | DeleteFileResult (Result Http.Error Api.FileStructure)
+    | Open File
 
 
 type File
@@ -216,6 +219,34 @@ update msg model =
                     _ ->
                         { model | renameFileError = Just "File with such name exists" } ! []
 
+        DeleteFile file ->
+            case file of
+                File file ->
+                    model ! [ Api.deleteApiFileByFileid file.fileId |> Http.send DeleteFileResult ]
+
+                Folder folder ->
+                    model ! [ Api.deleteApiFolderByFolderid folder.folderId |> Http.send DeleteFileResult ]
+
+        DeleteFileResult res ->
+            let
+                _ =
+                    Debug.log "res" res
+            in
+                case res of
+                    Ok files ->
+                        { model | files = fileStructureToFiles files } ! []
+
+                    _ ->
+                        model ! []
+
+        Open file ->
+            case file of
+                File file ->
+                    model ! [ Navigation.load <| "/file/" ++ toString file.fileId ++ "/" ++ file.fileName ]
+
+                Folder folder ->
+                    model ! [ Navigation.newUrl <| "/main/" ++ toString folder.folderId ]
+
 
 view : Model -> Html Msg
 view model =
@@ -297,30 +328,39 @@ viewContent model =
                         Table.tbody [] <|
                             List.indexedMap
                                 (\id ( file, dropdownState ) ->
-                                    Table.tr []
-                                        [ Table.td []
-                                            [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
-                                            , text <| getName file
+                                    let
+                                        link =
+                                            case file of
+                                                File file ->
+                                                    "/file/" ++ toString file.fileId ++ "/" ++ file.fileName
+
+                                                Folder folder ->
+                                                    "/main/" ++ toString folder.folderId
+                                    in
+                                        Table.tr [ Table.rowAttr <| class "pointer", Table.rowAttr <| onClick <| Open file ]
+                                            [ Table.td []
+                                                [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
+                                                , text <| getName file
+                                                ]
+                                            , Table.td [] [ text <| Date.Extra.toFormattedString "dd-MMM-YYYY hh:mm:ss" <| getFileInsertDate file ]
+                                            , Table.td []
+                                                [ Dropdown.dropdown
+                                                    dropdownState
+                                                    { options = []
+                                                    , toggleMsg = FileDropdown id
+                                                    , toggleButton =
+                                                        Dropdown.toggle
+                                                            [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
+                                                            [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
+                                                    , items =
+                                                        [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
+                                                        , Dropdown.buttonItem [ class "pointer", onClick <| DeleteFile file ] [ text "Delete" ]
+                                                        , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
+                                                        , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
+                                                        ]
+                                                    }
+                                                ]
                                             ]
-                                        , Table.td [] [ text <| Date.Extra.toFormattedString "dd-MMM-YYYY hh:mm:ss" <| getFileInsertDate file ]
-                                        , Table.td []
-                                            [ Dropdown.dropdown
-                                                dropdownState
-                                                { options = []
-                                                , toggleMsg = FileDropdown id
-                                                , toggleButton =
-                                                    Dropdown.toggle
-                                                        [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
-                                                        [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
-                                                , items =
-                                                    [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
-                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Delete" ]
-                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
-                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
-                                                    ]
-                                                }
-                                            ]
-                                        ]
                                 )
                                 model.files
                     }

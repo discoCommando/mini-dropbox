@@ -61,6 +61,7 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
             ,("logout", Main.logout)
             ,("testLogin", testLogin)
             ,("fileUpload/:folderId", fileUpload)
+            ,("file/:fileId/:fileName", fileServe)
             ,("", withSession sess $ serveSnap testApi app)
             ,("", serveFile "assets/index.html")]
   -- wrapHandlers tryLogin 
@@ -189,6 +190,27 @@ fileUpload = do
     allTrue [] = True 
     allTrue (True : rest) = allTrue rest 
     allTrue (False : _) = False 
+
+fileServe :: (Handler App App) ()
+fileServe = do 
+  cu <- with auth $ currentUser
+  fileIdS <- getParam "fileId"
+  case (cu, fileIdS) of 
+    (Nothing, _) -> fail "no user"
+    (_, Nothing) -> fail "no file"
+    (Just u, Just f) -> with db $ do 
+      let fileId' = read (B8.unpack f) :: Int 
+      fileExists <- (query 
+        "SELECT * FROM files WHERE fileId=? AND fileUid=?"
+        (fileId', maybe "0" unUid $ userId u) :: Handler App Postgres [File])
+
+      liftIO $ putStrLn $ show fileExists
+      case fileExists of 
+        [file] -> do
+          liftIO $ copyFile ("files/" ++ show fileId') ("tmp3/" ++ (Data.Text.unpack $ fileName file))
+          serveFile ("tmp3/" ++ (Data.Text.unpack $ fileName file))
+          -- liftIO $ removeFile ("tmp3/" ++ (Data.Text.unpack $ fileName file))
+        _ -> fail "no file" 
 
 
 -- Run the server.

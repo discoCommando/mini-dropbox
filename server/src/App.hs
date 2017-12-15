@@ -196,7 +196,7 @@ app =
             case (otherNameExistsFolder :: [Folder], otherNameExistsFile :: [File]) of 
               ([], []) -> do 
                 xs <- (query
-                  "UPDATE files SET folderName=? WHERE fileId=? RETURNING fileId"
+                  "UPDATE files SET fileName=? WHERE fileId=? RETURNING fileId"
                   (newName, fileId) :: Handler App Postgres [Only Int])            
                 getFileStructure $ fileFolderId file
 
