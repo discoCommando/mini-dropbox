@@ -116,34 +116,79 @@ register = do
 
 
 
-getFileSize :: FilePath -> IO FileOffset
-getFileSize path = System.Posix.fileSize <$> getFileStatus path
+-- getFileSize :: FilePath -> IO FileOffset
+-- getFileSize path = System.Posix.fileSize <$> getFileStatus path
 
 fileUpload :: (Handler App App) () 
 fileUpload = do 
-  getPostParams >>= (liftIO . putStrLn . show)
-  getQueryParams >>= (liftIO . putStrLn . show)
-  getParams >>= (liftIO . putStrLn . show)
-  l <- handleFileUploads "tmp" defaultUploadPolicy
-       (const $ allowWithMaximumSize (getMaximumFormInputSize defaultUploadPolicy))
-       (\pinfo mbfname -> do 
-          fsize <- either (const $ return 0) Main.getFileSize mbfname
-          case (partFileName pinfo, mbfname) of 
-            (Just name, Right pathName) -> do 
-                putStrLn $ show (name, fsize, pathName)
-                System.Directory.renameFile pathName ("files/" ++ B8.unpack name)
-            _ -> 
-              return () 
-          return (partFileName pinfo, fsize, mbfname)
-        )
-  redirect "/main" 
+  cu <- with auth $ currentUser
+  folderIdS <- getParam "folderId"
+  case (cu, folderIdS) of 
+    (Nothing, _) -> fail "no User"
+    (_, Nothing) -> fail "no folder"
+    (Just u, Just f) -> with db $ do 
+      let folderId = read (B8.unpack f) :: Int 
+      folderExists <- (query 
+          "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
+          (folderId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder]) 
+      folderExists' <- case folderId == 0 of 
+        True -> return True 
+        False -> return $ Prelude.length folderExists == 1
+      case folderExists' of 
+        False -> fail "wrong folder id"
+        True -> do 
+          l <- handleFileUploads "tmp" defaultUploadPolicy
+               (const $ allowWithMaximumSize (getMaximumFormInputSize defaultUploadPolicy))
+               (\pinfo mbfname -> do 
+                  fsize <- either (const $ return 0) getFileSize mbfname
+                  case (partFileName pinfo, mbfname) of 
+                    (Just name, Right pathName) -> do 
+                      case fsize of 
+                        0 -> return Nothing 
+                        _ -> do 
+                          System.Directory.renameFile pathName ("tmp2/" ++ getName pathName)
+                          return $ Just (name, fsize, "tmp2/" ++ getName pathName)
+                    _ -> 
+                      return Nothing 
+                )
+          let justs = getJusts l 
+          let allSize = Prelude.sum $ Prelude.map (\(a, b, c) -> b) justs 
+          --TODO check size 
+          fileNames <- forM justs $ \(name, fsize, path) -> do 
+            sameFileName <- (query 
+              "SELECT * FROM files WHERE fileFolderId=? AND fileName=?"
+              (folderId, name) :: Handler App Postgres [File])
+            sameFolderName <- (query 
+              "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
+              (folderId, name) :: Handler App Postgres [Folder])
+            return $ (sameFileName, sameFolderName) == ([], [])
 
-    -- checkAllRight [] = Just []
-    -- checkAllRight ((Just name, b, Right x) : rest) = do 
-    --   rest' <- checkAllRight rest 
-    --   return $ (name, b, x) : rest'
-    -- checkAllRight ((_, _, Left _) : rest) = Nothing 
-    -- checkAllRight ((Nothing, _, _) : rest) = Nothing 
+          let allEmpty = allTrue fileNames
+          case allEmpty of 
+            False -> do
+              forM justs $ \(_, _, path) -> do 
+                liftIO $ removeFile path
+              redirect $ B8.concat ["/main/", (B8.pack $ show folderId), "?error=1"]
+            True -> do 
+              forM justs $ \(name, fsize, path) ->  do 
+                [Only fileId] <- (query
+                  "INSERT INTO files (fileFolderId, fileName, fileUid, fileInsertDate, fileSize) VALUES (?,?,?,NOW(),?) RETURNING fileId"
+                  (folderId, name, maybe "0" unUid $ userId u, fsize) :: Handler App Postgres [Only Int]) 
+                liftIO $ renameFile path ("files/" ++ show fileId)
+
+              redirect $ B8.append "/main/" (B8.pack $ show folderId)
+
+   where 
+
+    getJusts [] = []
+    getJusts (Just a : rest) = a : getJusts rest
+    getJusts (Nothing : rest) = getJusts rest 
+
+    getName = Prelude.head . Prelude.reverse . Prelude.words . Prelude.map (\s -> if s == '/' then ' ' else s) 
+
+    allTrue [] = True 
+    allTrue (True : rest) = allTrue rest 
+    allTrue (False : _) = False 
 
 
 -- Run the server.

@@ -330,7 +330,7 @@ viewContent model =
             |> Modal.small
             |> Modal.h3 [] [ text "Upload file(s)" ]
             |> Modal.body []
-                [ Html.form [ enctype "multipart/form-data", action <| "/fileUpload/1", method "POST" ]
+                [ Html.form [ enctype "multipart/form-data", action <| "/fileUpload/" ++ toString model.parentId, method "POST" ]
                     [ input [ name "file", type_ "file" ] []
                     , p [] []
                     , Button.button
