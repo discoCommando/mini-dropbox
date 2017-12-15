@@ -38,6 +38,11 @@ type Msg
     | AddFolderNameSet String
     | AddFolderResult (Result Http.Error Api.FileStructure)
     | FileStructureLoadResult (Result Http.Error Api.FileStructure)
+    | RenameFileModalMsg Modal.State
+    | RenameFileSubmit
+    | RenameFileNameSet String
+    | RenameFileResult (Result Http.Error Api.FileStructure)
+    | RenameFileInit File
 
 
 type File
@@ -55,6 +60,10 @@ type alias Model =
     , addFolderModalState : Modal.State
     , addFolderError : Maybe String
     , addFolderName : String
+    , renameFileModalState : Modal.State
+    , renameFileError : Maybe String
+    , renameFileName : String
+    , renameFileCurrent : Maybe File
     }
 
 
@@ -73,6 +82,10 @@ init user mparentId =
         , addFolderModalState = Modal.hiddenState
         , addFolderError = Nothing
         , addFolderName = ""
+        , renameFileModalState = Modal.hiddenState
+        , renameFileError = Nothing
+        , renameFileName = ""
+        , renameFileCurrent = Nothing
         }
             ! [ cmd |> Cmd.map HelpersMsg, Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult ]
 
@@ -154,6 +167,54 @@ update msg model =
 
                 _ ->
                     model ! []
+
+        RenameFileInit file ->
+            { model | renameFileModalState = Modal.visibleState, renameFileCurrent = Just file, renameFileName = getName file } ! []
+
+        RenameFileModalMsg state ->
+            { model | renameFileModalState = state } ! []
+
+        RenameFileSubmit ->
+            case model.renameFileCurrent of
+                Just file ->
+                    case model.renameFileName of
+                        "" ->
+                            { model | renameFileError = Just "Folder name cannot be empty" } ! []
+
+                        _ ->
+                            let
+                                send x =
+                                    case model.renameFileName == getName file of
+                                        True ->
+                                            Cmd.none
+
+                                        False ->
+                                            Http.send RenameFileResult x
+                            in
+                                case file of
+                                    File f ->
+                                        { model | renameFileError = Nothing } ! [ Api.postApiFileRenameByFileid f.fileId model.renameFileName |> send ]
+
+                                    Folder f ->
+                                        { model | renameFileError = Nothing } ! [ Api.postApiFolderRenameByFolderid f.folderId model.renameFileName |> send ]
+
+                Nothing ->
+                    model ! []
+
+        RenameFileNameSet s ->
+            { model | renameFileError = Nothing, renameFileName = s } ! []
+
+        RenameFileResult res ->
+            let
+                _ =
+                    Debug.log "res" res
+            in
+                case res of
+                    Ok files ->
+                        { model | renameFileModalState = Modal.hiddenState, files = fileStructureToFiles files } ! []
+
+                    _ ->
+                        { model | renameFileError = Just "File with such name exists" } ! []
 
 
 view : Model -> Html Msg
@@ -252,7 +313,7 @@ viewContent model =
                                                         [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
                                                         [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
                                                 , items =
-                                                    [ Dropdown.buttonItem [ class "pointer" ] [ text "Rename" ]
+                                                    [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
                                                     , Dropdown.buttonItem [ class "pointer" ] [ text "Delete" ]
                                                     , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
                                                     , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
@@ -262,39 +323,6 @@ viewContent model =
                                         ]
                                 )
                                 model.files
-                        --[ Table.tr []
-                        --    [ Table.td []
-                        --        [ i [ class "fa fa-folder filetype", attribute "aria-hidden" "true" ] []
-                        --        , text "Folder"
-                        --        ]
-                        --    , Table.td [] [ text "20-Oct-2017 15:52:51" ]
-                        --    , Table.td [] [ fileActions 0 model ]
-                        --    ]
-                        --, Table.tr []
-                        --    [ Table.td []
-                        --        [ i [ class "fa fa-file-pdf-o filetype", attribute "aria-hidden" "true" ] []
-                        --        , text "file.pdf"
-                        --        ]
-                        --    , Table.td [] [ text "20-Oct-2017 15:52:52" ]
-                        --    , Table.td [] [ fileActions 1 model ]
-                        --    ]
-                        --, Table.tr []
-                        --    [ Table.td []
-                        --        [ i [ class "fa fa-file-o filetype", attribute "aria-hidden" "true" ] []
-                        --        , text "notes.txt"
-                        --        ]
-                        --    , Table.td [] [ text "15-Oct-2017 14:30:10" ]
-                        --    , Table.td [] [ fileActions 2 model ]
-                        --    ]
-                        --, Table.tr []
-                        --    [ Table.td []
-                        --        [ i [ class "fa fa-file-image-o filetype", attribute "aria-hidden" "true" ] []
-                        --        , text "image.png"
-                        --        ]
-                        --    , Table.td [] [ text "15-Oct-2017 14:30:10" ]
-                        --    , Table.td [] [ fileActions 3 model ]
-                        --    ]
-                        --]
                     }
                 ]
             ]
@@ -324,6 +352,17 @@ viewContent model =
             |> Modal.footer []
                 [ Button.button [ Button.outlineSuccess, Button.attrs [ onClick AddFolderSubmit ] ] [ text "Submit" ] ]
             |> Modal.view model.addFolderModalState
+        , Modal.config RenameFileModalMsg
+            |> Modal.small
+            |> Modal.h3 [] [ text "Rename file" ]
+            |> Modal.body []
+                [ text "File name"
+                , Input.text [ Input.attrs [ onInput RenameFileNameSet, value model.renameFileName ] ]
+                , text <| Maybe.withDefault "" model.renameFileError
+                ]
+            |> Modal.footer []
+                [ Button.button [ Button.outlineSuccess, Button.attrs [ onClick RenameFileSubmit ] ] [ text "Submit" ] ]
+            |> Modal.view model.renameFileModalState
         ]
 
 
