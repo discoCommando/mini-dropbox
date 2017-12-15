@@ -47,11 +47,52 @@ type Msg
     | DeleteFileResult (Result Http.Error Api.FileStructure)
     | Open File
     | FolderChainLoadResult (Result Http.Error (List Api.Folder))
+    | ChangeSort SortedColumn
 
 
 type File
     = Folder Api.Folder
     | File Api.File
+
+
+type Sort
+    = Desc
+    | Asc
+
+
+sortNext : Sort -> Sort
+sortNext sort =
+    case sort of
+        Desc ->
+            Asc
+
+        Asc ->
+            Desc
+
+
+sortToString : Sort -> String
+sortToString sort =
+    case sort of
+        Desc ->
+            "desc"
+
+        Asc ->
+            "asc"
+
+
+sortedColumnToString : SortedColumn -> String
+sortedColumnToString sortedColumn =
+    case sortedColumn of
+        Date ->
+            "date"
+
+        Name ->
+            "name"
+
+
+type SortedColumn
+    = Name
+    | Date
 
 
 type alias Model =
@@ -71,11 +112,13 @@ type alias Model =
     , folderChain : List Api.Folder
     , capacity : Int
     , errorMsg : Maybe String
+    , sort : Sort
+    , sortedColumn : SortedColumn
     }
 
 
-init : Api.User -> Maybe Int -> Bool -> ( Model, Cmd Msg )
-init user mparentId isError =
+init : Api.User -> Maybe Int -> Bool -> Sort -> SortedColumn -> ( Model, Cmd Msg )
+init user mparentId isError sort sortedColumn =
     let
         ( helpers, cmd ) =
             Helpers.init
@@ -100,6 +143,8 @@ init user mparentId isError =
                 Just "Size limit exceeded"
             else
                 Nothing
+        , sort = sort
+        , sortedColumn = sortedColumn
         }
             ! [ cmd |> Cmd.map HelpersMsg
               , Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult
@@ -107,10 +152,25 @@ init user mparentId isError =
               ]
 
 
-fileStructureToFiles : Api.FileStructure -> List ( File, Dropdown.State )
-fileStructureToFiles fileStructure =
-    List.map File fileStructure.files
+fileStructureToFiles : Api.FileStructure -> Sort -> SortedColumn -> List ( File, Dropdown.State )
+fileStructureToFiles fileStructure sort sortedColumn =
+    (List.map File fileStructure.files
         ++ List.map Folder fileStructure.folders
+    )
+        |> (case sortedColumn of
+                Date ->
+                    List.sortBy (getFileInsertDate >> toString)
+
+                Name ->
+                    List.sortBy (getName >> String.toLower)
+           )
+        |> (case sort of
+                Desc ->
+                    List.reverse
+
+                _ ->
+                    identity
+           )
         |> List.map (\x -> ( x, Dropdown.initialState ))
 
 
@@ -172,7 +232,7 @@ update msg model =
             in
                 case res of
                     Ok files ->
-                        { model | addFolderModalState = Modal.hiddenState, files = fileStructureToFiles files } ! []
+                        { model | addFolderModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
                     _ ->
                         { model | addFolderError = Just "File with such name exists" } ! []
@@ -180,7 +240,7 @@ update msg model =
         FileStructureLoadResult res ->
             case res of
                 Ok fs ->
-                    { model | files = fileStructureToFiles fs } ! []
+                    { model | files = fileStructureToFiles fs model.sort model.sortedColumn } ! []
 
                 _ ->
                     model ! []
@@ -228,7 +288,7 @@ update msg model =
             in
                 case res of
                     Ok files ->
-                        { model | renameFileModalState = Modal.hiddenState, files = fileStructureToFiles files } ! []
+                        { model | renameFileModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
                     _ ->
                         { model | renameFileError = Just "File with such name exists" } ! []
@@ -248,7 +308,7 @@ update msg model =
             in
                 case res of
                     Ok files ->
-                        { model | files = fileStructureToFiles files } ! []
+                        { model | files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
                     _ ->
                         model ! []
@@ -268,6 +328,34 @@ update msg model =
 
                 _ ->
                     model ! []
+
+        ChangeSort sortedColumn ->
+            case sortedColumn == model.sortedColumn of
+                True ->
+                    model
+                        ! [ Navigation.newUrl <|
+                                String.concat
+                                    [ "/main/"
+                                    , toString model.parentId
+                                    , "?sort="
+                                    , sortToString <| sortNext model.sort
+                                    , "&sortedColumn="
+                                    , sortedColumnToString sortedColumn
+                                    ]
+                          ]
+
+                False ->
+                    model
+                        ! [ Navigation.newUrl <|
+                                String.concat
+                                    [ "/main/"
+                                    , toString model.parentId
+                                    , "?sort="
+                                    , sortToString Asc
+                                    , "&sortedColumn="
+                                    , sortedColumnToString sortedColumn
+                                    ]
+                          ]
 
 
 view : Model -> Html Msg
@@ -370,8 +458,28 @@ viewContent model =
                             { options = [ Table.hover ]
                             , thead =
                                 Table.simpleThead
-                                    [ Table.th [ Table.cellAttr (class "w-75") ] [ text "Name" ]
-                                    , Table.th [ Table.cellAttr (class "w-25") ] [ text "Last modified" ]
+                                    [ Table.th [ Table.cellAttr (class "w-75 pointer"), Table.cellAttr (onClick <| ChangeSort Name) ]
+                                        [ text "Name "
+                                        , span
+                                            [ classList
+                                                [ ( "fa fa-sort-desc", model.sort == Desc && model.sortedColumn == Name )
+                                                , ( "fa fa-sort-asc", model.sort == Asc && model.sortedColumn == Name )
+                                                ]
+                                            , attribute "aria-hidden" "true"
+                                            ]
+                                            []
+                                        ]
+                                    , Table.th [ Table.cellAttr (class "w-25 pointer"), Table.cellAttr (onClick <| ChangeSort Date) ]
+                                        [ text "Last modified "
+                                        , span
+                                            [ classList
+                                                [ ( "fa fa-sort-desc", model.sort == Desc && model.sortedColumn == Date )
+                                                , ( "fa fa-sort-asc", model.sort == Asc && model.sortedColumn == Date )
+                                                ]
+                                            , attribute "aria-hidden" "true"
+                                            ]
+                                            []
+                                        ]
                                     , Table.th [ Table.cellAttr (class "w-10") ] []
                                     ]
                             , tbody =

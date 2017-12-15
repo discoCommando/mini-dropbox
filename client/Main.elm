@@ -48,7 +48,7 @@ type Msg
 
 type Location
     = LoginLoc
-    | FilesLoc (Maybe Int) Bool
+    | FilesLoc (Maybe Int) Bool Files.Sort Files.SortedColumn
     | SettingsLoc
     | LogoutLoc
 
@@ -99,8 +99,46 @@ locParser =
             [ UrlParser.map LoginLoc UrlParser.top
             , UrlParser.map SettingsLoc (UrlParser.s "settings")
             , UrlParser.map LogoutLoc (UrlParser.s "logout")
-            , UrlParser.map (\i maybeError -> FilesLoc (Just i) <| isJust maybeError) (UrlParser.s "main" </> int <?> intParam "error")
-            , UrlParser.map (\maybeError -> FilesLoc Nothing <| isJust maybeError) (UrlParser.s "main" <?> intParam "error")
+            , UrlParser.map
+                (\i maybeError sortS sortedColumnS ->
+                    FilesLoc (Just i)
+                        (isJust maybeError)
+                        (case sortS of
+                            Just "desc" ->
+                                Files.Desc
+
+                            _ ->
+                                Files.Asc
+                        )
+                        (case sortedColumnS of
+                            Just "date" ->
+                                Files.Date
+
+                            _ ->
+                                Files.Name
+                        )
+                )
+                (UrlParser.s "main" </> int <?> intParam "error" <?> stringParam "sort" <?> stringParam "sortedColumn")
+            , UrlParser.map
+                (\maybeError sortS sortedColumnS ->
+                    FilesLoc Nothing
+                        (isJust maybeError)
+                        (case sortS of
+                            Just "desc" ->
+                                Files.Desc
+
+                            _ ->
+                                Files.Asc
+                        )
+                        (case sortedColumnS of
+                            Just "date" ->
+                                Files.Date
+
+                            _ ->
+                                Files.Name
+                        )
+                )
+                (UrlParser.s "main" <?> intParam "error" <?> stringParam "sort" <?> stringParam "sortedColumn")
             ]
 
 
@@ -134,12 +172,12 @@ locationToPage muser path =
                 Nothing ->
                     ( NotFound, Navigation.newUrl "/index.html" )
 
-        files i b =
+        files i b sort sortedColumn =
             case muser of
                 Just user ->
                     let
                         ( files, cmd ) =
-                            Files.init user i b
+                            Files.init user i b sort sortedColumn
                     in
                         ( Files files, Cmd.map FilesMsg cmd )
 
@@ -158,8 +196,8 @@ locationToPage muser path =
                     LoginLoc ->
                         login
 
-                    FilesLoc i b ->
-                        files i b
+                    FilesLoc i b s sc ->
+                        files i b s sc
 
                     SettingsLoc ->
                         settings
