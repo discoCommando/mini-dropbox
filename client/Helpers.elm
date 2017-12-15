@@ -59,8 +59,8 @@ update msg model =
             model ! [ Navigation.newUrl "/logout" ]
 
 
-viewLoggedIn : Model -> (Msg -> msg) -> Html msg -> Html msg
-viewLoggedIn model lift innerView =
+viewLoggedIn : Model -> Api.User -> (Msg -> msg) -> Html msg -> Html msg
+viewLoggedIn model user lift innerView =
     Grid.container []
         [ Grid.row
             [ Row.attrs [ class "middle" ] ]
@@ -81,15 +81,8 @@ viewLoggedIn model lift innerView =
                             |> Navbar.items []
                             |> Navbar.customItems
                                 -- Add custom items
-                                [ Navbar.formItem [ class "center navbar-right-item pointer" ]
-                                    [ InputGroup.config
-                                        (InputGroup.text
-                                            [ Input.attrs [ placeholder "Search" ]
-                                            ]
-                                        )
-                                        |> InputGroup.successors
-                                            [ InputGroup.button [ Button.onClick <| lift GotoFiles ] [ i [ class "fa fa-search", attribute "aria-hidden" "true" ] [] ] ]
-                                        |> InputGroup.view
+                                [ Navbar.textItem [ class "center navbar-right-item " ]
+                                    [ b [] [ text user.userLogin ]
                                     ]
                                 , Navbar.textItem [ class "center navbar-right-item pointer", onClick <| lift GotoSettings ]
                                     [ i [ class "fa fa-user-circle navbar-right-item-icon", attribute "aria-hidden" "true" ] []

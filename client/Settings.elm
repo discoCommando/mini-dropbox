@@ -104,7 +104,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    Helpers.viewLoggedIn model.helpers HelpersMsg (viewContent model)
+    Helpers.viewLoggedIn model.helpers model.user HelpersMsg (viewContent model)
 
 
 viewContent : Model -> Html Msg
