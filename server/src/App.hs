@@ -38,6 +38,7 @@ import           Models
 
 import           Servant.API
 import           Servant (serveSnap, Server, serveDirectory)
+import           System.Directory
 
 
 data App = App {
@@ -66,13 +67,11 @@ app :: Server (Api AppHandler) '[] AppHandler
 app = 
   (getFolderContents :<|> 
   renameFolder      :<|> 
-  moveFolder        :<|> 
   deleteFolder      :<|> 
   addFolder         :<|> 
   getFolderChain    :<|> 
 
   renameFile        :<|>
-  moveFile          :<|>
   deleteFile        :<|>
 
   user              :<|>
@@ -129,9 +128,6 @@ app =
 
           _ -> fail "no folder"
 
-  moveFolder        :: Int -> Int -> AppHandler FileStructure
-  moveFolder        = 
-    undefined 
 
   deleteFolder      :: Int -> AppHandler FileStructure
   deleteFolder      folderId = do
@@ -144,9 +140,9 @@ app =
           (folderId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder])
         case folderExists of 
           [folder] -> do 
-            xs <- (query
+            (execute
               "DELETE FROM folders WHERE folderId=?"
-              ([folderId]) :: Handler App Postgres [Only Int])            
+              ([folderId]))            
             getFileStructure $ folderParentId folder 
           _ -> fail "folder does not exist"
 
@@ -234,13 +230,25 @@ app =
 
           _ -> fail "no folder"
 
-  moveFile          :: Int -> Int -> AppHandler FileStructure
-  moveFile          = 
-    undefined 
-
+  
   deleteFile        :: Int -> AppHandler FileStructure
-  deleteFile        = 
-    undefined 
+  deleteFile fileId = do
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> with db $ do 
+        fileExists <- (query 
+          "SELECT * FROM files WHERE fileId=? AND fileUid=?"
+          (fileId, maybe "0" unUid $ userId u) :: Handler App Postgres [File])
+        case fileExists of 
+          [file] -> do 
+            (execute
+              "DELETE FROM files WHERE fileId=?"
+              ([fileId]))            
+            liftIO $ System.Directory.removeFile $ ("files/" ++ show fileId)
+            getFileStructure $ fileFolderId file 
+          _ -> fail "file does not exist"
+
 
   user              :: User -> AppHandler (Maybe User)
   user userData     = with auth $ do 

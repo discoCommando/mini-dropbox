@@ -24,17 +24,15 @@ type Paths m =
   --test 
   "folder"              :> Capture "folderid" Int                               :> Get '[JSON] FileStructure    :<|>
   "folder"  :> "rename" :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
-  "folder"  :> "move"   :> Capture "folderid" Int :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
   "folder"              :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
   "folder"              :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Put '[JSON] FileStructure    :<|>
   "folder"  :> "chain"  :> Capture "folderid" Int                               :> Get '[JSON] [Folder]         :<|>
 
   "file"    :> "rename" :> Capture "fileid" Int   :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
-  "file"    :> "move"   :> Capture "fileid" Int   :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
   "file"                :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure :<|>
 
   "user"                                          :> ReqBody '[JSON] User       :> Post '[JSON] (Maybe User)    :<|>
-  
+
   "capacity"                                                                    :> Get '[JSON] Int
 
 
