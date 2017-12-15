@@ -82,7 +82,7 @@ update msg model =
             { model | tabState = state } ! []
 
         LoginResult res ->
-            case Debug.log "res" res of
+            case res of
                 Ok (Just user) ->
                     { model | user = Just user } ! [ Navigation.newUrl "main" ]
 
@@ -96,7 +96,7 @@ update msg model =
             { model | loginPassword = s } ! []
 
         RegisterResult res ->
-            case Debug.log "res" res of
+            case res of
                 Ok (Just user) ->
                     { model | user = Just user } ! [ Navigation.newUrl "main" ]
 

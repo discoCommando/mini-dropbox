@@ -227,9 +227,6 @@ urlChange model location =
 
         ( page, pageCmd ) =
             locationToPage user location
-
-        _ =
-            Debug.log location.pathname page
     in
         { model | page = page, user = user } ! [ pageCmd ]
 

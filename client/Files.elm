@@ -226,16 +226,12 @@ update msg model =
             { model | addFolderError = Nothing, addFolderName = s } ! []
 
         AddFolderResult res ->
-            let
-                _ =
-                    Debug.log "res" res
-            in
-                case res of
-                    Ok files ->
-                        { model | addFolderModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
+            case res of
+                Ok files ->
+                    { model | addFolderModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
-                    _ ->
-                        { model | addFolderError = Just "File with such name exists" } ! []
+                _ ->
+                    { model | addFolderError = Just "File with such name exists" } ! []
 
         FileStructureLoadResult res ->
             case res of
@@ -282,16 +278,12 @@ update msg model =
             { model | renameFileError = Nothing, renameFileName = s } ! []
 
         RenameFileResult res ->
-            let
-                _ =
-                    Debug.log "res" res
-            in
-                case res of
-                    Ok files ->
-                        { model | renameFileModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
+            case res of
+                Ok files ->
+                    { model | renameFileModalState = Modal.hiddenState, files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
-                    _ ->
-                        { model | renameFileError = Just "File with such name exists" } ! []
+                _ ->
+                    { model | renameFileError = Just "File with such name exists" } ! []
 
         DeleteFile file ->
             case file of
@@ -302,16 +294,12 @@ update msg model =
                     model ! [ Api.deleteApiFolderByFolderid folder.folderId |> Http.send DeleteFileResult ]
 
         DeleteFileResult res ->
-            let
-                _ =
-                    Debug.log "res" res
-            in
-                case res of
-                    Ok files ->
-                        { model | files = fileStructureToFiles files model.sort model.sortedColumn } ! []
+            case res of
+                Ok files ->
+                    { model | files = fileStructureToFiles files model.sort model.sortedColumn } ! []
 
-                    _ ->
-                        model ! []
+                _ ->
+                    model ! []
 
         Open file ->
             case file of
