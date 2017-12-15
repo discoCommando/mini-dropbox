@@ -22,6 +22,8 @@ import Navigation
 import Helpers
 import Api
 import Http
+import Date exposing (Date)
+import Date.Extra
 
 
 type Msg
@@ -35,12 +37,18 @@ type Msg
     | AddFolderSubmit
     | AddFolderNameSet String
     | AddFolderResult (Result Http.Error Api.FileStructure)
+    | FileStructureLoadResult (Result Http.Error Api.FileStructure)
+
+
+type File
+    = Folder Api.Folder
+    | File Api.File
 
 
 type alias Model =
     { parentId : Int
+    , files : List ( File, Dropdown.State )
     , dropdownState : Dropdown.State
-    , fileDropdowns : List Dropdown.State
     , helpers : Helpers.Model
     , user : Api.User
     , fileUploadModalState : Modal.State
@@ -57,17 +65,23 @@ init user mparentId =
             Helpers.init
     in
         { parentId = Maybe.withDefault 0 mparentId
+        , files = []
         , helpers = helpers
         , dropdownState = Dropdown.initialState
-        , fileDropdowns =
-            List.repeat 4 Dropdown.initialState
         , user = user
         , fileUploadModalState = Modal.hiddenState
         , addFolderModalState = Modal.hiddenState
         , addFolderError = Nothing
         , addFolderName = ""
         }
-            ! [ cmd |> Cmd.map HelpersMsg ]
+            ! [ cmd |> Cmd.map HelpersMsg, Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult ]
+
+
+fileStructureToFiles : Api.FileStructure -> List ( File, Dropdown.State )
+fileStructureToFiles fileStructure =
+    List.map File fileStructure.files
+        ++ List.map Folder fileStructure.folders
+        |> List.map (\x -> ( x, Dropdown.initialState ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,13 +103,13 @@ update msg model =
                         [] ->
                             []
 
-                        x :: xs ->
+                        ( x, s ) :: xs ->
                             if id <= 0 then
-                                state :: xs
+                                ( x, state ) :: xs
                             else
-                                x :: replace (id - 1) xs
+                                ( x, s ) :: replace (id - 1) xs
             in
-                { model | fileDropdowns = replace i model.fileDropdowns } ! []
+                { model | files = replace i model.files } ! []
 
         HelpersMsg msg ->
             let
@@ -116,7 +130,7 @@ update msg model =
                     { model | addFolderError = Just "Folder name cannot be empty" } ! []
 
                 _ ->
-                    { model | addFolderError = Nothing } ! [ Api.putApiFolderByFolderid 1 model.addFolderName |> Http.send AddFolderResult ]
+                    { model | addFolderError = Nothing } ! [ Api.putApiFolderByFolderid model.parentId model.addFolderName |> Http.send AddFolderResult ]
 
         AddFolderNameSet s ->
             { model | addFolderError = Nothing, addFolderName = s } ! []
@@ -127,41 +141,55 @@ update msg model =
                     Debug.log "res" res
             in
                 case res of
-                    Ok _ ->
-                        { model | addFolderModalState = Modal.hiddenState } ! []
+                    Ok files ->
+                        { model | addFolderModalState = Modal.hiddenState, files = fileStructureToFiles files } ! []
 
                     _ ->
                         { model | addFolderError = Just "File with such name exists" } ! []
 
+        FileStructureLoadResult res ->
+            case res of
+                Ok fs ->
+                    { model | files = fileStructureToFiles fs } ! []
 
-fileActions : Int -> Model -> Html Msg
-fileActions id model =
-    let
-        dropdownState =
-            List.drop id model.fileDropdowns
-                |> List.head
-                |> Maybe.withDefault model.dropdownState
-    in
-        Dropdown.dropdown
-            dropdownState
-            { options = []
-            , toggleMsg = FileDropdown id
-            , toggleButton =
-                Dropdown.toggle
-                    [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
-                    [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
-            , items =
-                [ Dropdown.buttonItem [ class "pointer" ] [ text "Rename" ]
-                , Dropdown.buttonItem [ class "pointer" ] [ text "Delete" ]
-                , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
-                , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
-                ]
-            }
+                _ ->
+                    model ! []
 
 
 view : Model -> Html Msg
 view model =
     Helpers.viewLoggedIn model.helpers HelpersMsg (viewContent model)
+
+
+getFileInsertDate : File -> Date
+getFileInsertDate file =
+    case file of
+        File file ->
+            file.fileInsertDate
+
+        Folder folder ->
+            folder.folderInsertDate
+
+
+getIconText : File -> String
+getIconText file =
+    case file of
+        File file ->
+            --TODO change
+            "fa-folder"
+
+        Folder folder ->
+            "fa-folder"
+
+
+getName : File -> String
+getName file =
+    case file of
+        File file ->
+            file.fileName
+
+        Folder folder ->
+            folder.folderName
 
 
 viewContent : Model -> Html Msg
@@ -205,40 +233,68 @@ viewContent model =
                             , Table.th [ Table.cellAttr (class "w-10") ] []
                             ]
                     , tbody =
-                        Table.tbody []
-                            [ Table.tr []
-                                [ Table.td []
-                                    [ i [ class "fa fa-folder filetype", attribute "aria-hidden" "true" ] []
-                                    , text "Folder"
-                                    ]
-                                , Table.td [] [ text "20-Oct-2017 15:52:51" ]
-                                , Table.td [] [ fileActions 0 model ]
-                                ]
-                            , Table.tr []
-                                [ Table.td []
-                                    [ i [ class "fa fa-file-pdf-o filetype", attribute "aria-hidden" "true" ] []
-                                    , text "file.pdf"
-                                    ]
-                                , Table.td [] [ text "20-Oct-2017 15:52:52" ]
-                                , Table.td [] [ fileActions 1 model ]
-                                ]
-                            , Table.tr []
-                                [ Table.td []
-                                    [ i [ class "fa fa-file-o filetype", attribute "aria-hidden" "true" ] []
-                                    , text "notes.txt"
-                                    ]
-                                , Table.td [] [ text "15-Oct-2017 14:30:10" ]
-                                , Table.td [] [ fileActions 2 model ]
-                                ]
-                            , Table.tr []
-                                [ Table.td []
-                                    [ i [ class "fa fa-file-image-o filetype", attribute "aria-hidden" "true" ] []
-                                    , text "image.png"
-                                    ]
-                                , Table.td [] [ text "15-Oct-2017 14:30:10" ]
-                                , Table.td [] [ fileActions 3 model ]
-                                ]
-                            ]
+                        Table.tbody [] <|
+                            List.indexedMap
+                                (\id ( file, dropdownState ) ->
+                                    Table.tr []
+                                        [ Table.td []
+                                            [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
+                                            , text <| getName file
+                                            ]
+                                        , Table.td [] [ text <| Date.Extra.toFormattedString "dd-MMM-YYYY hh:mm:ss" <| getFileInsertDate file ]
+                                        , Table.td []
+                                            [ Dropdown.dropdown
+                                                dropdownState
+                                                { options = []
+                                                , toggleMsg = FileDropdown id
+                                                , toggleButton =
+                                                    Dropdown.toggle
+                                                        [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
+                                                        [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
+                                                , items =
+                                                    [ Dropdown.buttonItem [ class "pointer" ] [ text "Rename" ]
+                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Delete" ]
+                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
+                                                    , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
+                                                    ]
+                                                }
+                                            ]
+                                        ]
+                                )
+                                model.files
+                        --[ Table.tr []
+                        --    [ Table.td []
+                        --        [ i [ class "fa fa-folder filetype", attribute "aria-hidden" "true" ] []
+                        --        , text "Folder"
+                        --        ]
+                        --    , Table.td [] [ text "20-Oct-2017 15:52:51" ]
+                        --    , Table.td [] [ fileActions 0 model ]
+                        --    ]
+                        --, Table.tr []
+                        --    [ Table.td []
+                        --        [ i [ class "fa fa-file-pdf-o filetype", attribute "aria-hidden" "true" ] []
+                        --        , text "file.pdf"
+                        --        ]
+                        --    , Table.td [] [ text "20-Oct-2017 15:52:52" ]
+                        --    , Table.td [] [ fileActions 1 model ]
+                        --    ]
+                        --, Table.tr []
+                        --    [ Table.td []
+                        --        [ i [ class "fa fa-file-o filetype", attribute "aria-hidden" "true" ] []
+                        --        , text "notes.txt"
+                        --        ]
+                        --    , Table.td [] [ text "15-Oct-2017 14:30:10" ]
+                        --    , Table.td [] [ fileActions 2 model ]
+                        --    ]
+                        --, Table.tr []
+                        --    [ Table.td []
+                        --        [ i [ class "fa fa-file-image-o filetype", attribute "aria-hidden" "true" ] []
+                        --        , text "image.png"
+                        --        ]
+                        --    , Table.td [] [ text "15-Oct-2017 14:30:10" ]
+                        --    , Table.td [] [ fileActions 3 model ]
+                        --    ]
+                        --]
                     }
                 ]
             ]
@@ -275,8 +331,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Dropdown.subscriptions model.dropdownState DropdownMsg
-        , model.fileDropdowns
-            |> List.indexedMap (\i s -> Dropdown.subscriptions s <| FileDropdown i)
+        , model.files
+            |> List.indexedMap (\i ( _, s ) -> Dropdown.subscriptions s <| FileDropdown i)
             |> Sub.batch
         , Helpers.subscriptions model.helpers |> Sub.map HelpersMsg
         ]

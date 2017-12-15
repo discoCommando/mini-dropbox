@@ -134,14 +134,17 @@ app =
         parentExist <- (query 
           "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
           (parentId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder])
+        parentExist' <- case parentId == 0 of 
+          True -> return True 
+          False -> return $ Prelude.length parentExist == 1
         sameFolderName <- (query 
           "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
           (parentId, folderName) :: Handler App Postgres [Folder])
         sameFileName <- (query 
-          "SELECT * FROM folders WHERE fileFolderId=? AND fileName=?"
+          "SELECT * FROM files WHERE fileFolderId=? AND fileName=?"
           (parentId, folderName) :: Handler App Postgres [File])
-        case (parentExist, sameFolderName, sameFileName) of 
-          ([parent], [], []) -> do 
+        case (parentExist', sameFolderName, sameFileName) of 
+          (True, [], []) -> do 
             xs <- (query
               "INSERT INTO folders (folderParentId, folderName, folderUid, folderInsertDate) VALUES (?,?,?,NOW()) RETURNING folderId"
               (parentId, folderName, maybe "0" unUid $ userId u) :: Handler App Postgres [Only Int]) 
