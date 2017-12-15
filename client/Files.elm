@@ -129,7 +129,7 @@ update msg model =
                         { model | addFolderModalState = Modal.hiddenState } ! []
 
                     _ ->
-                        model ! []
+                        { model | addFolderError = Just "File with such name exists" } ! []
 
 
 fileActions : Int -> Model -> Html Msg

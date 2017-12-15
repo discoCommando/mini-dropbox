@@ -105,17 +105,28 @@ app =
     case cu of 
       Nothing -> return $ FileStructure [] []
       Just u -> with db $ do 
-        xs <- (query
-          "INSERT INTO folders (folderParentId, folderName, folderUid, folderInsertDate) VALUES (?,?,?,NOW()) RETURNING folderId"
-          (parentId, folderName, maybe "0" unUid $ userId u) :: Handler App Postgres [Only Int]) 
-        folders <- query 
-          "SELECT * FROM folders WHERE folderParentId=?"
-          ([parentId])
-        files <- query 
-          "SELECT * FROM files WHERE fileFolderId=?"
-          ([parentId])
-        return $ FileStructure (files :: [File]) (folders :: [Folder])
+        sameFolderName <- (query 
+          "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
+          (parentId, folderName) :: Handler App Postgres [Folder])
+        sameFileName <- (query 
+          "SELECT * FROM folders WHERE fileFolderId=? AND fileName=?"
+          (parentId, folderName) :: Handler App Postgres [File])
+        case (sameFolderName, sameFileName) of 
+          ([], []) -> do 
+            xs <- (query
+              "INSERT INTO folders (folderParentId, folderName, folderUid, folderInsertDate) VALUES (?,?,?,NOW()) RETURNING folderId"
+              (parentId, folderName, maybe "0" unUid $ userId u) :: Handler App Postgres [Only Int]) 
+            folders <- query 
+              "SELECT * FROM folders WHERE folderParentId=?"
+              ([parentId])
+            files <- query 
+              "SELECT * FROM files WHERE fileFolderId=?"
+              ([parentId])
+            return $ FileStructure (files :: [File]) (folders :: [Folder])
+   
+          _ -> fail "name exists"
 
+        
 
   renameFile        :: Int -> Text -> AppHandler FileStructure
   renameFile        = 
