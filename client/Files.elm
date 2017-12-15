@@ -289,8 +289,32 @@ getIconText : File -> String
 getIconText file =
     case file of
         File file ->
-            --TODO change
-            "fa-folder"
+            let
+                suffix =
+                    file.fileName
+                        |> String.split "."
+                        |> List.reverse
+                        |> List.head
+                        |> Maybe.withDefault ""
+            in
+                case suffix of
+                    "pdf" ->
+                        "fa-file-pdf-o"
+
+                    "png" ->
+                        "fa-file-image-o"
+
+                    "gif" ->
+                        "fa-file-image-o"
+
+                    "jpeg" ->
+                        "fa-file-image-o"
+
+                    "jpg" ->
+                        "fa-file-image-o"
+
+                    _ ->
+                        "fa-file-o"
 
         Folder folder ->
             "fa-folder"
