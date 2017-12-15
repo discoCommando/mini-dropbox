@@ -61,8 +61,6 @@ type AppHandler = Handler App App
 testApi :: Proxy (Api AppHandler)
 testApi = Proxy
 
--- withAssets :: Proxy WithAssets
--- withAssets = Proxy
 app :: Server (Api AppHandler) '[] AppHandler
 app = 
   (getFolderContents :<|> 

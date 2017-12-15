@@ -20,8 +20,7 @@ import           Servant.Elm      (ElmType)
 import           Data.Text
 import           Models
 
-type Paths m = 
-  --test 
+type Paths m =  
   "folder"              :> Capture "folderid" Int                               :> Get '[JSON] FileStructure    :<|>
   "folder"  :> "rename" :> Capture "folderid" Int :> ReqBody '[JSON] Text       :> Post '[JSON] FileStructure   :<|>
   "folder"              :> Capture "folderid" Int                               :> Delete '[JSON] FileStructure :<|>
@@ -44,29 +43,3 @@ type DummyPaths m =
   "logout"    :>                              Post '[JSON] ()
 
 type Api m = "api" :> Paths m :<|> DummyPaths m 
-
--- type Api = 
---   "api" :> ("files" :> Capture "folderid" Int :> Get '[JSON] FileStructure :<|>
---   "item" :> Get '[JSON] [ItemId] :<|>
---   "item" :> Capture "itemId" ItemId :> Get '[JSON] Item :<|>
---   "item" :> ReqBody '[JSON] String :> Post '[JSON] ItemId :<|>
---   "item" :> Capture "itemId" ItemId :> Delete '[JSON] ItemId)
-
-
--- api :: Proxy Api
--- api = Proxy
-
--- types
-
--- type ItemId = Int
-
--- data Item
---   = Item {
---     id :: ItemId,
---     text :: String
---   }
---   deriving (Show, Eq, Generic)
-
--- instance ElmType Item
--- instance ToJSON Item
--- instance FromJSON Item

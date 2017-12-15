@@ -106,11 +106,6 @@ instance ToRow File where
     , toField fileInsertDate
     ] 
 
-
--- data FileStructure = Single File | Multiple Folder [FileStructure]
---   deriving (Eq, Read, Show, Generic)
-
-
 data FileStructure = FileStructure {files :: [File], folders :: [Folder]} deriving (Eq, Read, Show, Generic)
 
 

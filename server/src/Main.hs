@@ -45,9 +45,6 @@ import           Snap.Util.FileUploads
 import           System.Posix          (FileOffset, fileSize, getFileStatus)
 import           System.Directory 
 
--- * Example
-
--- | A greet message data type
 
 initApp :: SnapletInit App App
 initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
@@ -64,7 +61,6 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
             ,("file/:fileId/:fileName", fileServe)
             ,("", withSession sess $ serveSnap testApi app)
             ,("", serveFile "assets/index.html")]
-  -- wrapHandlers tryLogin 
   return $ App h s a d 
 
 testLogin :: (Handler App App) ()
@@ -73,11 +69,6 @@ testLogin = with auth $ do
   modifyResponse $ setHeader "Content-Type" "application/json"
   writeLBS . encode $ fmap toUser cu
 
-tryLogin :: (Handler App App) () 
-tryLogin = with auth $ do 
-  cu <- loginByRememberToken
-  liftIO $ putStrLn $ show $ cu 
-  return ()
 
 login :: (Handler App App) () 
 login = do 
@@ -137,7 +128,6 @@ fileUpload = do
           l <- handleFileUploads "tmp" defaultUploadPolicy
                (const $ allowWithMaximumSize 10000000)
                (\pinfo mbfname -> do 
-                  putStrLn $ show $ (pinfo, mbfname)
                   fsize <- either (const $ return 0) getFileSize mbfname
                   case (partFileName pinfo, mbfname) of 
                     (Just name, Right pathName) -> do 
@@ -209,7 +199,6 @@ fileServe = do
         "SELECT * FROM files WHERE fileId=? AND fileUid=?"
         (fileId', maybe "0" unUid $ userId u) :: Handler App Postgres [File])
 
-      liftIO $ putStrLn $ show fileExists
       case fileExists of 
         [file] -> do
           serveFile ("files/"++ show fileId')
