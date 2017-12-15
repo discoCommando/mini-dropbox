@@ -354,7 +354,6 @@ viewContent model =
                     , items =
                         [ Dropdown.buttonItem [ class "pointer", onClick <| AddFolderModalMsg Modal.visibleState ] [ text "Add folder" ]
                         , Dropdown.buttonItem [ class "pointer", onClick <| FileUploadModalMsg Modal.visibleState ] [ text "Upload file" ]
-                        , Dropdown.buttonItem [ class "pointer" ] [ text "Paste" ]
                         ]
                     }
                 ]
@@ -388,8 +387,8 @@ viewContent model =
                                                         Folder folder ->
                                                             "/main/" ++ toString folder.folderId
                                             in
-                                                Table.tr [ Table.rowAttr <| class "pointer", Table.rowAttr <| onClick <| Open file ]
-                                                    [ Table.td []
+                                                Table.tr []
+                                                    [ Table.td [ Table.cellAttr <| class "pointer", Table.cellAttr <| onClick <| Open file ]
                                                         [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
                                                         , text <| getName file
                                                         ]
@@ -406,8 +405,6 @@ viewContent model =
                                                             , items =
                                                                 [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
                                                                 , Dropdown.buttonItem [ class "pointer", onClick <| DeleteFile file ] [ text "Delete" ]
-                                                                , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
-                                                                , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
                                                                 ]
                                                             }
                                                         ]
