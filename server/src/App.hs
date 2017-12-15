@@ -147,8 +147,6 @@ app =
             getFileStructure $ folderParentId folder 
 
 
-    -- undefined
-
   addFolder      :: Int -> Text -> AppHandler FileStructure
   addFolder parentId folderName =  do  
     cu <- with auth $ currentUser
@@ -179,8 +177,32 @@ app =
         
 
   renameFile        :: Int -> Text -> AppHandler FileStructure
-  renameFile        = 
-    undefined 
+  renameFile fileId newName = do
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> with db $ do 
+        fileExists <- query 
+          "SELECT * FROM files WHERE fileId=? AND fileUid=?"
+          (fileId, maybe "0" unUid $ userId u)
+        case (fileExists :: [File]) of 
+          [file] -> do 
+            otherNameExistsFolder <- query 
+              "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
+              (fileFolderId file, newName)
+            otherNameExistsFile <- query 
+              "SELECT * FROM files WHERE fileFolderId=? AND fileName=?"
+              (fileFolderId file, newName)
+            case (otherNameExistsFolder :: [Folder], otherNameExistsFile :: [File]) of 
+              ([], []) -> do 
+                xs <- (query
+                  "UPDATE files SET folderName=? WHERE fileId=? RETURNING fileId"
+                  (newName, fileId) :: Handler App Postgres [Only Int])            
+                getFileStructure $ fileFolderId file
+
+              _ -> fail "file name exists"  
+
+          _ -> fail "no folder"
 
   moveFile          :: Int -> Int -> AppHandler FileStructure
   moveFile          = 
