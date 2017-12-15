@@ -98,7 +98,7 @@ update msg model =
         RegisterResult res ->
             case Debug.log "res" res of
                 Ok (Just user) ->
-                    model ! [ Navigation.newUrl "main" ]
+                    { model | user = Just user } ! [ Navigation.newUrl "main" ]
 
                 _ ->
                     { model | registerError = Just "Username already exists" } ! []
@@ -149,13 +149,7 @@ view model =
                                                         []
                                                         [ Grid.col [] <|
                                                             List.concat
-                                                                [ case model.loginError of
-                                                                    Just error ->
-                                                                        [ text error ]
-
-                                                                    _ ->
-                                                                        []
-                                                                , [ Form.group []
+                                                                [ [ Form.group []
                                                                         [ InputGroup.config
                                                                             (InputGroup.text
                                                                                 [ Input.attrs [ placeholder "Username", onInput LoginUsernameSet, value model.loginUsername ]
@@ -179,6 +173,12 @@ view model =
                                                                         ]
                                                                         [ text "Sign in" ]
                                                                   ]
+                                                                , case model.loginError of
+                                                                    Just error ->
+                                                                        [ text error ]
+
+                                                                    _ ->
+                                                                        []
                                                                 ]
                                                         ]
                                                     ]
@@ -194,13 +194,7 @@ view model =
                                                         []
                                                         [ Grid.col [] <|
                                                             List.concat
-                                                                [ case model.registerError of
-                                                                    Just error ->
-                                                                        [ text error ]
-
-                                                                    _ ->
-                                                                        []
-                                                                , [ Form.group []
+                                                                [ [ Form.group []
                                                                         [ InputGroup.config
                                                                             (InputGroup.text
                                                                                 [ Input.attrs [ placeholder "Username", onInput RegisterUsernameSet, value model.registerUsername ]
@@ -231,6 +225,12 @@ view model =
                                                                         ]
                                                                         [ text "Sign up" ]
                                                                   ]
+                                                                , case model.registerError of
+                                                                    Just error ->
+                                                                        [ text error ]
+
+                                                                    _ ->
+                                                                        []
                                                                 ]
                                                         ]
                                                     ]

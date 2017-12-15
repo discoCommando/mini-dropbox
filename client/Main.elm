@@ -161,6 +161,9 @@ locationToPage muser location =
                     "logout" ->
                         logout
 
+                    "upload-file" ->
+                        logout
+
                     _ ->
                         NotFound ! []
 

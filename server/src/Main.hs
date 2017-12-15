@@ -10,6 +10,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 
 import           Control.Lens
+import qualified Data.ByteString.Char8 as B8
 import           Data.Aeson hiding (defaultOptions)
 import           Data.Map.Syntax ((##))
 import           Data.Monoid
@@ -40,6 +41,9 @@ import           Servant (serveSnap, Server, serveDirectory)
 import           Models 
 import           App
 import           Data.HashMap.Lazy
+import           Snap.Util.FileUploads
+import           System.Posix          (FileOffset, fileSize, getFileStatus)
+import           System.Directory 
 
 -- * Example
 
@@ -56,6 +60,7 @@ initApp = makeSnaplet "myapp" "An example app in servant" Nothing $ do
             ,("register", register)
             ,("logout", Main.logout)
             ,("testLogin", testLogin)
+            ,("fileUpload/:folderId", fileUpload)
             ,("", withSession sess $ serveSnap testApi app)
             ,("", serveFile "assets/index.html")]
   -- wrapHandlers tryLogin 
@@ -108,6 +113,37 @@ register = do
         Left _ -> writeLBS . encode $ (Nothing :: Maybe User)
     _ -> 
       writeLBS . encode $ (Nothing :: Maybe User)
+
+
+
+getFileSize :: FilePath -> IO FileOffset
+getFileSize path = System.Posix.fileSize <$> getFileStatus path
+
+fileUpload :: (Handler App App) () 
+fileUpload = do 
+  getPostParams >>= (liftIO . putStrLn . show)
+  getQueryParams >>= (liftIO . putStrLn . show)
+  getParams >>= (liftIO . putStrLn . show)
+  l <- handleFileUploads "tmp" defaultUploadPolicy
+       (const $ allowWithMaximumSize (getMaximumFormInputSize defaultUploadPolicy))
+       (\pinfo mbfname -> do 
+          fsize <- either (const $ return 0) Main.getFileSize mbfname
+          case (partFileName pinfo, mbfname) of 
+            (Just name, Right pathName) -> do 
+                putStrLn $ show (name, fsize, pathName)
+                System.Directory.renameFile pathName ("files/" ++ B8.unpack name)
+            _ -> 
+              return () 
+          return (partFileName pinfo, fsize, mbfname)
+        )
+  redirect "/main" 
+
+    -- checkAllRight [] = Just []
+    -- checkAllRight ((Just name, b, Right x) : rest) = do 
+    --   rest' <- checkAllRight rest 
+    --   return $ (name, b, x) : rest'
+    -- checkAllRight ((_, _, Left _) : rest) = Nothing 
+    -- checkAllRight ((Nothing, _, _) : rest) = Nothing 
 
 
 -- Run the server.

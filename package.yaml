@@ -25,6 +25,9 @@ dependencies:
   - time 
   - elm-export
   - unordered-containers
+  - bytestring
+  - unix 
+  - directory
 
 executables:
   mini-dropbox:

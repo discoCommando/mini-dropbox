@@ -29,6 +29,7 @@ type Msg
     | DropdownMsg Dropdown.State
     | FileDropdown Int Dropdown.State
     | HelpersMsg Helpers.Msg
+    | ModalMsg Modal.State
 
 
 type alias Model =
@@ -36,6 +37,7 @@ type alias Model =
     , fileDropdowns : List Dropdown.State
     , helpers : Helpers.Model
     , user : Api.User
+    , modalState : Modal.State
     }
 
 
@@ -50,6 +52,7 @@ init user =
         , fileDropdowns =
             List.repeat 4 Dropdown.initialState
         , user = user
+        , modalState = Modal.hiddenState
         }
             ! [ cmd |> Cmd.map HelpersMsg ]
 
@@ -87,6 +90,9 @@ update msg model =
                     Helpers.update msg model.helpers
             in
                 { model | helpers = helpers } ! [ cmd |> Cmd.map HelpersMsg ]
+
+        ModalMsg state ->
+            { model | modalState = state } ! []
 
 
 fileActions : Int -> Model -> Html Msg
@@ -143,7 +149,7 @@ viewContent model =
                             [ text "Actions" ]
                     , items =
                         [ Dropdown.buttonItem [ class "pointer" ] [ text "Add folder" ]
-                        , Dropdown.buttonItem [ class "pointer" ] [ text "Upload file" ]
+                        , Dropdown.buttonItem [ class "pointer", onClick <| ModalMsg Modal.visibleState ] [ text "Upload file" ]
                         , Dropdown.buttonItem [ class "pointer" ] [ text "Paste" ]
                         ]
                     }
@@ -197,6 +203,21 @@ viewContent model =
                     }
                 ]
             ]
+        , Modal.config ModalMsg
+            |> Modal.small
+            |> Modal.h3 [] [ text "Upload file(s)" ]
+            |> Modal.body []
+                [ Html.form [ enctype "multipart/form-data", action <| "/fileUpload/1", method "POST" ]
+                    [ input [ name "file", type_ "file" ] []
+                    , p [] []
+                    , Button.button
+                        [ Button.outlineSuccess
+                        , Button.attrs [ type_ "submit" ]
+                        ]
+                        [ text "Submit" ]
+                    ]
+                ]
+            |> Modal.view model.modalState
         ]
 
 

@@ -36,7 +36,10 @@ executable generate
     text,
     time,
     elm-export,
-    unordered-containers
+    unordered-containers,
+    bytestring,
+    unix,
+    directory
   other-modules:
     Api
     App
@@ -73,7 +76,10 @@ executable mini-dropbox
     text,
     time,
     elm-export,
-    unordered-containers
+    unordered-containers,
+    bytestring,
+    unix,
+    directory
   other-modules:
     Api
     App
