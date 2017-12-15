@@ -69,11 +69,13 @@ type alias Model =
     , renameFileName : String
     , renameFileCurrent : Maybe File
     , folderChain : List Api.Folder
+    , capacity : Int
+    , errorMsg : Maybe String
     }
 
 
-init : Api.User -> Maybe Int -> ( Model, Cmd Msg )
-init user mparentId =
+init : Api.User -> Maybe Int -> Bool -> ( Model, Cmd Msg )
+init user mparentId isError =
     let
         ( helpers, cmd ) =
             Helpers.init
@@ -92,6 +94,12 @@ init user mparentId =
         , renameFileName = ""
         , renameFileCurrent = Nothing
         , folderChain = []
+        , capacity = 0
+        , errorMsg =
+            if isError then
+                Just "Size limit exceeded"
+            else
+                Nothing
         }
             ! [ cmd |> Cmd.map HelpersMsg
               , Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult
@@ -329,7 +337,8 @@ viewContent model =
             ]
         , Grid.row []
             [ Grid.col []
-                [ case model.files of
+                [ h3 [] [ text <| Maybe.withDefault "" model.errorMsg ]
+                , case model.files of
                     [] ->
                         text "Empty folder"
 

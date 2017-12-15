@@ -33,7 +33,9 @@ type Paths m =
   "file"    :> "move"   :> Capture "fileid" Int   :> ReqBody '[JSON] Int        :> Post '[JSON] FileStructure   :<|>
   "file"                :> Capture "fileid" Int                                 :> Delete '[JSON] FileStructure :<|>
 
-  "user"                                          :> ReqBody '[JSON] User       :> Post '[JSON] (Maybe User)
+  "user"                                          :> ReqBody '[JSON] User       :> Post '[JSON] (Maybe User)    :<|>
+  
+  "capacity"                                                                    :> Get '[JSON] Int
 
 
 -- dummy paths that are handled in main, not by servant, but they will be helpful for generating elm code 

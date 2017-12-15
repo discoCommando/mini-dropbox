@@ -75,7 +75,9 @@ app =
   moveFile          :<|>
   deleteFile        :<|>
 
-  user)
+  user              :<|>
+
+  capacity)
 
   :<|> 
 
@@ -254,6 +256,19 @@ app =
         case result of 
           Right cu' -> return $ Just $ toUser cu'
           Left _ -> return Nothing 
+
+  capacity          :: AppHandler Int 
+  capacity          = do 
+    cu <- with auth $ currentUser 
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> with db $ do  
+        sum <- (query 
+          "SELECT SUM(fileSize) FROM files WHERE fileUid=? GROUP BY fileUid"
+          ([maybe "0" unUid $ userId u]) :: Handler App Postgres [Only Int])
+        case sum of 
+          [Only s] -> return s 
+          _ -> return 0
 
   testLogin         :: AppHandler (Maybe User)
   testLogin          = undefined

@@ -116,10 +116,6 @@ register = do
       writeLBS . encode $ (Nothing :: Maybe User)
 
 
-
--- getFileSize :: FilePath -> IO FileOffset
--- getFileSize path = System.Posix.fileSize <$> getFileStatus path
-
 fileUpload :: (Handler App App) () 
 fileUpload = do 
   cu <- with auth $ currentUser
@@ -139,8 +135,9 @@ fileUpload = do
         False -> fail "wrong folder id"
         True -> do 
           l <- handleFileUploads "tmp" defaultUploadPolicy
-               (const $ allowWithMaximumSize (getMaximumFormInputSize defaultUploadPolicy))
+               (const $ allowWithMaximumSize 10000000)
                (\pinfo mbfname -> do 
+                  putStrLn $ show $ (pinfo, mbfname)
                   fsize <- either (const $ return 0) getFileSize mbfname
                   case (partFileName pinfo, mbfname) of 
                     (Just name, Right pathName) -> do 
@@ -153,31 +150,39 @@ fileUpload = do
                       return Nothing 
                 )
           let justs = getJusts l 
-          let allSize = Prelude.sum $ Prelude.map (\(a, b, c) -> b) justs 
-          --TODO check size 
-          fileNames <- forM justs $ \(name, fsize, path) -> do 
-            sameFileName <- (query 
-              "SELECT * FROM files WHERE fileFolderId=? AND fileName=?"
-              (folderId, name) :: Handler App Postgres [File])
-            sameFolderName <- (query 
-              "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
-              (folderId, name) :: Handler App Postgres [Folder])
-            return $ (sameFileName, sameFolderName) == ([], [])
+          let allSize = Prelude.sum $ Prelude.map (\(a, b, c) -> fromInteger b) justs
+          sum <- (query 
+            "SELECT SUM(fileSize) FROM files WHERE fileUid=? GROUP BY fileUid"
+            ([maybe "0" unUid $ userId u]) :: Handler App Postgres [Only Int])
+          sum' <- case sum of 
+            [Only s] -> return s 
+            _ -> return 0
+          case 2 * 1024 * 1024 * 1024 <= allSize + sum' of 
+            True -> redirect $ B8.concat ["/main/", B8.pack $ show folderId, "?error=1"]
+            False -> do 
+              fileNames <- forM justs $ \(name, fsize, path) -> do 
+                sameFileName <- (query 
+                  "SELECT * FROM files WHERE fileFolderId=? AND fileName=?"
+                  (folderId, name) :: Handler App Postgres [File])
+                sameFolderName <- (query 
+                  "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
+                  (folderId, name) :: Handler App Postgres [Folder])
+                return $ (sameFileName, sameFolderName) == ([], [])
 
-          let allEmpty = allTrue fileNames
-          case allEmpty of 
-            False -> do
-              forM justs $ \(_, _, path) -> do 
-                liftIO $ removeFile path
-              redirect $ B8.concat ["/main/", (B8.pack $ show folderId), "?error=1"]
-            True -> do 
-              forM justs $ \(name, fsize, path) ->  do 
-                [Only fileId] <- (query
-                  "INSERT INTO files (fileFolderId, fileName, fileUid, fileInsertDate, fileSize) VALUES (?,?,?,NOW(),?) RETURNING fileId"
-                  (folderId, name, maybe "0" unUid $ userId u, fsize) :: Handler App Postgres [Only Int]) 
-                liftIO $ renameFile path ("files/" ++ show fileId)
+              let allEmpty = allTrue fileNames
+              case allEmpty of 
+                False -> do
+                  forM justs $ \(_, _, path) -> do 
+                    liftIO $ removeFile path
+                  redirect $ B8.concat ["/main/", (B8.pack $ show folderId), "?error=1"]
+                True -> do 
+                  forM justs $ \(name, fsize, path) ->  do 
+                    [Only fileId] <- (query
+                      "INSERT INTO files (fileFolderId, fileName, fileUid, fileInsertDate, fileSize) VALUES (?,?,?,NOW(),?) RETURNING fileId"
+                      (folderId, name, maybe "0" unUid $ userId u, fsize) :: Handler App Postgres [Only Int]) 
+                    liftIO $ renameFile path ("files/" ++ show fileId)
 
-              redirect $ B8.append "/main/" (B8.pack $ show folderId)
+                  redirect $ B8.append "/main/" (B8.pack $ show folderId)
 
    where 
 

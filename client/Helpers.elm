@@ -28,10 +28,11 @@ type Msg
     | GotoFiles
     | GotoSettings
     | Logout
+    | CapacityLoadResult (Result Http.Error Int)
 
 
 type alias Model =
-    { navbarState : Navbar.State }
+    { navbarState : Navbar.State, capacity : Int }
 
 
 init : ( Model, Cmd Msg )
@@ -40,7 +41,10 @@ init =
         ( navbarState, navbarCmd ) =
             Navbar.initialState NavbarMsg
     in
-        { navbarState = navbarState } ! [ navbarCmd ]
+        { navbarState = navbarState, capacity = 0 }
+            ! [ navbarCmd
+              , Api.getApiCapacity |> Http.send CapacityLoadResult
+              ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,6 +61,14 @@ update msg model =
 
         Logout ->
             model ! [ Navigation.newUrl "/logout" ]
+
+        CapacityLoadResult res ->
+            case res of
+                Ok capacity ->
+                    { model | capacity = capacity } ! []
+
+                _ ->
+                    model ! []
 
 
 viewLoggedIn : Model -> Api.User -> (Msg -> msg) -> Html msg -> Html msg
@@ -103,7 +115,7 @@ viewLoggedIn model user lift innerView =
                             [ Grid.row []
                                 [ Grid.col
                                     [ Col.attrs [ class "text-left" ] ]
-                                    [ text "Used: 902MB/2048MB" ]
+                                    [ text <| "Used: " ++ (toString <| Basics.floor <| Basics.toFloat model.capacity / (1024 * 1024)) ++ "MB/2048MB" ]
                                 , Grid.col
                                     [ Col.attrs [ class "text-right" ] ]
                                     [ text "Tomasz Wawreniuk"

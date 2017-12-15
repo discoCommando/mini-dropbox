@@ -48,7 +48,7 @@ type Msg
 
 type Location
     = LoginLoc
-    | FilesLoc (Maybe Int)
+    | FilesLoc (Maybe Int) Bool
     | SettingsLoc
     | LogoutLoc
 
@@ -86,13 +86,22 @@ getUser page =
 
 locParser : Parser (Location -> a) a
 locParser =
-    oneOf
-        [ UrlParser.map LoginLoc UrlParser.top
-        , UrlParser.map SettingsLoc (UrlParser.s "settings")
-        , UrlParser.map LogoutLoc (UrlParser.s "logout")
-        , UrlParser.map (FilesLoc << Just) (UrlParser.s "main" </> int)
-        , UrlParser.map (FilesLoc Nothing) (UrlParser.s "main")
-        ]
+    let
+        isJust m =
+            case m of
+                Nothing ->
+                    False
+
+                Just _ ->
+                    True
+    in
+        oneOf
+            [ UrlParser.map LoginLoc UrlParser.top
+            , UrlParser.map SettingsLoc (UrlParser.s "settings")
+            , UrlParser.map LogoutLoc (UrlParser.s "logout")
+            , UrlParser.map (\i maybeError -> FilesLoc (Just i) <| isJust maybeError) (UrlParser.s "main" </> int <?> intParam "error")
+            , UrlParser.map (\maybeError -> FilesLoc Nothing <| isJust maybeError) (UrlParser.s "main" <?> intParam "error")
+            ]
 
 
 locationToPage : Maybe Api.User -> Navigation.Location -> ( Page, Cmd Msg )
@@ -125,12 +134,12 @@ locationToPage muser path =
                 Nothing ->
                     ( NotFound, Navigation.newUrl "/index.html" )
 
-        files i =
+        files i b =
             case muser of
                 Just user ->
                     let
                         ( files, cmd ) =
-                            Files.init user i
+                            Files.init user i b
                     in
                         ( Files files, Cmd.map FilesMsg cmd )
 
@@ -149,8 +158,8 @@ locationToPage muser path =
                     LoginLoc ->
                         login
 
-                    FilesLoc i ->
-                        files i
+                    FilesLoc i b ->
+                        files i b
 
                     SettingsLoc ->
                         settings
