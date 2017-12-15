@@ -9,6 +9,13 @@ body {
   
 }
 
+.dark {
+  background: linear-gradient(to bottom, #121212 0%, #F1F1F1 100%);
+}
+
+.light {
+  background: linear-gradient(to bottom, #C9D6FF 0%, #E2E2E2 100%);
+}
 
 .middle {
   min-height: 100%;  /* Fallback for browsers do NOT support vh unit */

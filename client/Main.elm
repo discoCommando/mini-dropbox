@@ -295,10 +295,14 @@ view state =
                     Login.view login |> Html.map LoginMsg
 
                 Files files ->
-                    Files.view files |> Html.map FilesMsg
+                    div [ classList [ ( "light", files.user.userPreference == 0 ), ( "dark", files.user.userPreference == 1 ) ] ]
+                        [ Files.view files |> Html.map FilesMsg
+                        ]
 
                 Settings settings ->
-                    Settings.view settings |> Html.map SettingsMsg
+                    div [ classList [ ( "light", settings.user.userPreference == 0 ), ( "dark", settings.user.userPreference == 1 ) ] ]
+                        [ Settings.view settings |> Html.map SettingsMsg
+                        ]
 
                 NotFound ->
                     text ""

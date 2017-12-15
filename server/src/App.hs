@@ -255,8 +255,10 @@ app =
       Nothing -> return Nothing 
       Just u -> do  
         pass <- liftIO $ encryptPassword $ ClearText $ encodeUtf8 $ Models.userPassword userData
-        result <- saveUser $ u { Snap.Snaplet.Auth.userLogin = Models.userLogin userData, 
-                                 Snap.Snaplet.Auth.userPassword = Just $ pass ,
+        u' <- case Models.userPassword userData of 
+          "" -> return u 
+          _ -> return $ u {Snap.Snaplet.Auth.userPassword = Just $ pass}
+        result <- saveUser $ u' { Snap.Snaplet.Auth.userLogin = Models.userLogin userData, 
                                  -- hack because userMeta does not work with postgres backend
                                  userEmail = Just $ pack $ show $ Models.userPreference userData
                                 }
