@@ -69,6 +69,7 @@ app =
   moveFolder        :<|> 
   deleteFolder      :<|> 
   addFolder         :<|> 
+  getFolderChain    :<|> 
 
   renameFile        :<|>
   moveFile          :<|>
@@ -145,13 +146,14 @@ app =
               "DELETE FROM folders WHERE folderId=?"
               ([folderId]) :: Handler App Postgres [Only Int])            
             getFileStructure $ folderParentId folder 
+          _ -> fail "folder does not exist"
 
 
   addFolder      :: Int -> Text -> AppHandler FileStructure
   addFolder parentId folderName =  do  
     cu <- with auth $ currentUser
     case cu of 
-      Nothing -> return $ FileStructure [] []
+      Nothing -> fail "no user"
       Just u -> with db $ do 
         parentExist <- (query 
           "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
@@ -174,7 +176,33 @@ app =
    
           _ -> fail "name exists"
 
-        
+  getFolderChain    :: Int -> AppHandler [Folder]
+  getFolderChain folderId = do 
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> with db $ do 
+        folderExists <- (query 
+          "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
+          (folderId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder])
+        case folderExists of 
+          [folder] -> do 
+            getChain [folder] $ folderParentId folder
+          _ -> case folderId of 
+            0 -> return []
+            _ -> fail "folder does not exist"
+
+    where 
+      getChain :: [Folder] -> Int -> Handler App Postgres [Folder]
+      getChain folders 0 = return folders 
+      getChain folders parentId = do 
+        folderExists <- (query 
+          "SELECT * FROM folders WHERE folderId=?"
+          ([parentId]) :: Handler App Postgres [Folder])
+        case folderExists of 
+          [folder] -> getChain (folder : folders) $ folderParentId folder
+          _ -> fail "no parent"
+
 
   renameFile        :: Int -> Text -> AppHandler FileStructure
   renameFile fileId newName = do

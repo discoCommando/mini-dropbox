@@ -207,9 +207,7 @@ fileServe = do
       liftIO $ putStrLn $ show fileExists
       case fileExists of 
         [file] -> do
-          liftIO $ copyFile ("files/" ++ show fileId') ("tmp3/" ++ (Data.Text.unpack $ fileName file))
-          serveFile ("tmp3/" ++ (Data.Text.unpack $ fileName file))
-          -- liftIO $ removeFile ("tmp3/" ++ (Data.Text.unpack $ fileName file))
+          serveFile ("files/"++ show fileId')
         _ -> fail "no file" 
 
 

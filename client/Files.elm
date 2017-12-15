@@ -46,6 +46,7 @@ type Msg
     | DeleteFile File
     | DeleteFileResult (Result Http.Error Api.FileStructure)
     | Open File
+    | FolderChainLoadResult (Result Http.Error (List Api.Folder))
 
 
 type File
@@ -67,6 +68,7 @@ type alias Model =
     , renameFileError : Maybe String
     , renameFileName : String
     , renameFileCurrent : Maybe File
+    , folderChain : List Api.Folder
     }
 
 
@@ -89,8 +91,12 @@ init user mparentId =
         , renameFileError = Nothing
         , renameFileName = ""
         , renameFileCurrent = Nothing
+        , folderChain = []
         }
-            ! [ cmd |> Cmd.map HelpersMsg, Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult ]
+            ! [ cmd |> Cmd.map HelpersMsg
+              , Api.getApiFolderByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FileStructureLoadResult
+              , Api.getApiFolderChainByFolderid (Maybe.withDefault 0 mparentId) |> Http.send FolderChainLoadResult
+              ]
 
 
 fileStructureToFiles : Api.FileStructure -> List ( File, Dropdown.State )
@@ -247,6 +253,14 @@ update msg model =
                 Folder folder ->
                     model ! [ Navigation.newUrl <| "/main/" ++ toString folder.folderId ]
 
+        FolderChainLoadResult res ->
+            case res of
+                Ok folders ->
+                    { model | folderChain = folders } ! []
+
+                _ ->
+                    model ! []
+
 
 view : Model -> Html Msg
 view model =
@@ -290,11 +304,10 @@ viewContent model =
         [ Grid.row [ Row.attrs [ class "folders" ] ]
             [ Grid.col
                 [ Col.xs8, Col.attrs [ class "text-left" ] ]
-                [ h4 []
-                    [ span [] [ text "Folder1" ]
-                    , span [] [ i [ class "fa fa-caret-right", attribute "aria-hidden" "true" ] [] ]
-                    , span [] [ text "Folder2" ]
-                    ]
+                [ model.folderChain
+                    |> List.map (\folder -> span [ onClick <| Open <| Folder folder, class "pointer" ] [ text folder.folderName ])
+                    |> List.intersperse (span [] [ i [ class "fa fa-caret-right", attribute "aria-hidden" "true" ] [] ])
+                    |> h4 []
                 ]
             , Grid.col
                 [ Col.xs4, Col.attrs [ class "text-right" ] ]
@@ -316,54 +329,59 @@ viewContent model =
             ]
         , Grid.row []
             [ Grid.col []
-                [ Table.table
-                    { options = [ Table.hover ]
-                    , thead =
-                        Table.simpleThead
-                            [ Table.th [ Table.cellAttr (class "w-75") ] [ text "Name" ]
-                            , Table.th [ Table.cellAttr (class "w-25") ] [ text "Last modified" ]
-                            , Table.th [ Table.cellAttr (class "w-10") ] []
-                            ]
-                    , tbody =
-                        Table.tbody [] <|
-                            List.indexedMap
-                                (\id ( file, dropdownState ) ->
-                                    let
-                                        link =
-                                            case file of
-                                                File file ->
-                                                    "/file/" ++ toString file.fileId ++ "/" ++ file.fileName
+                [ case model.files of
+                    [] ->
+                        text "Empty folder"
 
-                                                Folder folder ->
-                                                    "/main/" ++ toString folder.folderId
-                                    in
-                                        Table.tr [ Table.rowAttr <| class "pointer", Table.rowAttr <| onClick <| Open file ]
-                                            [ Table.td []
-                                                [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
-                                                , text <| getName file
-                                                ]
-                                            , Table.td [] [ text <| Date.Extra.toFormattedString "dd-MMM-YYYY hh:mm:ss" <| getFileInsertDate file ]
-                                            , Table.td []
-                                                [ Dropdown.dropdown
-                                                    dropdownState
-                                                    { options = []
-                                                    , toggleMsg = FileDropdown id
-                                                    , toggleButton =
-                                                        Dropdown.toggle
-                                                            [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
-                                                            [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
-                                                    , items =
-                                                        [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
-                                                        , Dropdown.buttonItem [ class "pointer", onClick <| DeleteFile file ] [ text "Delete" ]
-                                                        , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
-                                                        , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
+                    _ ->
+                        Table.table
+                            { options = [ Table.hover ]
+                            , thead =
+                                Table.simpleThead
+                                    [ Table.th [ Table.cellAttr (class "w-75") ] [ text "Name" ]
+                                    , Table.th [ Table.cellAttr (class "w-25") ] [ text "Last modified" ]
+                                    , Table.th [ Table.cellAttr (class "w-10") ] []
+                                    ]
+                            , tbody =
+                                Table.tbody [] <|
+                                    List.indexedMap
+                                        (\id ( file, dropdownState ) ->
+                                            let
+                                                link =
+                                                    case file of
+                                                        File file ->
+                                                            "/file/" ++ toString file.fileId ++ "/" ++ file.fileName
+
+                                                        Folder folder ->
+                                                            "/main/" ++ toString folder.folderId
+                                            in
+                                                Table.tr [ Table.rowAttr <| class "pointer", Table.rowAttr <| onClick <| Open file ]
+                                                    [ Table.td []
+                                                        [ i [ class <| "fa " ++ getIconText file ++ " filetype", attribute "aria-hidden" "true" ] []
+                                                        , text <| getName file
                                                         ]
-                                                    }
-                                                ]
-                                            ]
-                                )
-                                model.files
-                    }
+                                                    , Table.td [] [ text <| Date.Extra.toFormattedString "dd-MMM-YYYY hh:mm:ss" <| getFileInsertDate file ]
+                                                    , Table.td []
+                                                        [ Dropdown.dropdown
+                                                            dropdownState
+                                                            { options = []
+                                                            , toggleMsg = FileDropdown id
+                                                            , toggleButton =
+                                                                Dropdown.toggle
+                                                                    [ Button.secondary, Button.attrs [ class "file-action" ], Button.small ]
+                                                                    [ i [ class "fa fa-ellipsis-h", attribute "aria-hidden" "true" ] [] ]
+                                                            , items =
+                                                                [ Dropdown.buttonItem [ class "pointer", onClick <| RenameFileInit file ] [ text "Rename" ]
+                                                                , Dropdown.buttonItem [ class "pointer", onClick <| DeleteFile file ] [ text "Delete" ]
+                                                                , Dropdown.buttonItem [ class "pointer" ] [ text "Cut" ]
+                                                                , Dropdown.buttonItem [ class "pointer" ] [ text "Copy" ]
+                                                                ]
+                                                            }
+                                                        ]
+                                                    ]
+                                        )
+                                        model.files
+                            }
                 ]
             ]
         , Modal.config FileUploadModalMsg
