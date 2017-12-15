@@ -80,7 +80,9 @@ login = do
       cu <- loginByUsername (username loginForm) (ClearText $ encodeUtf8 $ password loginForm) True 
       case cu of 
         Right user -> writeLBS . encode $ fmap toUser (Just user)
-        Left _ -> writeLBS . encode $ (Nothing :: Maybe User)
+        Left a -> do 
+          liftIO $ putStrLn $ show a
+          writeLBS . encode $ (Nothing :: Maybe User)
     _ -> 
       writeLBS . encode $ (Nothing :: Maybe User)
 
