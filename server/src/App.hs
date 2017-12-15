@@ -84,8 +84,19 @@ app =
   logout          )where
 
   getFolderContents :: Int -> AppHandler FileStructure 
-  getFolderContents id = 
-    return $ FileStructure [] []
+  getFolderContents parentId = do 
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> do 
+        folders <- query 
+          "SELECT * FROM folders WHERE folderParentId=? AND folderUid=?"
+          (parentId, maybe "0" unUid $ userId u)
+        files <- query 
+          "SELECT * FROM files WHERE fileFolderId=? AND fileUid=?"
+          (parentId, maybe "0" unUid $ userId u)
+        return $ FileStructure (files :: [File]) (folders :: [Folder])
+    
 
   renameFolder      :: Int -> Text -> AppHandler FileStructure
   renameFolder      = 
@@ -96,8 +107,23 @@ app =
     undefined 
 
   deleteFolder      :: Int -> AppHandler FileStructure
-  deleteFolder      = 
-    undefined 
+  deleteFolder      folderId = do
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> fail "no user"
+      Just u -> with db $ do 
+        folderExists <- (query 
+          "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
+          (folderId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder])
+        case folderExists of 
+          [folder] -> do 
+            xs <- (query
+              "DELETE FROM folders WHERE folderId=?"
+              ([folderId]) :: Handler App Postgres [Only Int])            
+            getFileStructure $ folderParentId folder 
+
+
+    -- undefined
 
   addFolder      :: Int -> Text -> AppHandler FileStructure
   addFolder parentId folderName =  do  
@@ -105,24 +131,21 @@ app =
     case cu of 
       Nothing -> return $ FileStructure [] []
       Just u -> with db $ do 
+        parentExist <- (query 
+          "SELECT * FROM folders WHERE folderId=? AND folderUid=?"
+          (parentId, maybe "0" unUid $ userId u) :: Handler App Postgres [Folder])
         sameFolderName <- (query 
           "SELECT * FROM folders WHERE folderParentId=? AND folderName=?"
           (parentId, folderName) :: Handler App Postgres [Folder])
         sameFileName <- (query 
           "SELECT * FROM folders WHERE fileFolderId=? AND fileName=?"
           (parentId, folderName) :: Handler App Postgres [File])
-        case (sameFolderName, sameFileName) of 
-          ([], []) -> do 
+        case (parentExist, sameFolderName, sameFileName) of 
+          ([parent], [], []) -> do 
             xs <- (query
               "INSERT INTO folders (folderParentId, folderName, folderUid, folderInsertDate) VALUES (?,?,?,NOW()) RETURNING folderId"
               (parentId, folderName, maybe "0" unUid $ userId u) :: Handler App Postgres [Only Int]) 
-            folders <- query 
-              "SELECT * FROM folders WHERE folderParentId=?"
-              ([parentId])
-            files <- query 
-              "SELECT * FROM files WHERE fileFolderId=?"
-              ([parentId])
-            return $ FileStructure (files :: [File]) (folders :: [Folder])
+            getFileStructure parentId 
    
           _ -> fail "name exists"
 
@@ -168,4 +191,12 @@ app =
   logout             = undefined
 
 
-
+getFileStructure :: Int -> Handler App Postgres FileStructure
+getFileStructure parentId = do 
+  folders <- query 
+    "SELECT * FROM folders WHERE folderParentId=?"
+    ([parentId])
+  files <- query 
+    "SELECT * FROM files WHERE fileFolderId=?"
+    ([parentId])
+  return $ FileStructure (files :: [File]) (folders :: [Folder])

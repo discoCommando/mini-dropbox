@@ -50,13 +50,13 @@ update msg model =
             { model | navbarState = state } ! []
 
         GotoFiles ->
-            model ! [ Navigation.newUrl "main" ]
+            model ! [ Navigation.newUrl "/main" ]
 
         GotoSettings ->
-            model ! [ Navigation.newUrl "settings" ]
+            model ! [ Navigation.newUrl "/settings" ]
 
         Logout ->
-            model ! [ Navigation.newUrl "logout" ]
+            model ! [ Navigation.newUrl "/logout" ]
 
 
 viewLoggedIn : Model -> (Msg -> msg) -> Html msg -> Html msg

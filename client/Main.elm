@@ -24,6 +24,7 @@ import Login
 import Settings
 import Http
 import Api
+import UrlParser exposing (..)
 
 
 main : Program Never State Msg
@@ -36,19 +37,6 @@ main =
         }
 
 
-
---type BootstrapMsg
---    = UrlChange Navigation.Location
---    | ModalMsg Modal.State
---    | NavbarMsg Navbar.State
---    | DropdownMsg Dropdown.State
---    | FileDropdown Int Dropdown.State
---    | TabMsg Tab.State
---    | GotoMain
---    | GotoLogin
---    | GotoSettings
-
-
 type Msg
     = LoginMsg Login.Msg
     | FilesMsg Files.Msg
@@ -56,6 +44,13 @@ type Msg
     | UrlChange Navigation.Location
     | LoginAttemptResult (Result Http.Error (Maybe Api.User))
     | LogoutResult (Result Http.Error ())
+
+
+type Location
+    = LoginLoc
+    | FilesLoc (Maybe Int)
+    | SettingsLoc
+    | LogoutLoc
 
 
 type Page
@@ -89,19 +84,27 @@ getUser page =
             Nothing
 
 
+locParser : Parser (Location -> a) a
+locParser =
+    oneOf
+        [ UrlParser.map LoginLoc UrlParser.top
+        , UrlParser.map SettingsLoc (UrlParser.s "settings")
+        , UrlParser.map LogoutLoc (UrlParser.s "logout")
+        , UrlParser.map (FilesLoc << Just) (UrlParser.s "main" </> int)
+        , UrlParser.map (FilesLoc Nothing) (UrlParser.s "main")
+        ]
+
+
 locationToPage : Maybe Api.User -> Navigation.Location -> ( Page, Cmd Msg )
-locationToPage muser location =
+locationToPage muser path =
     let
-        suffix =
-            location.pathname
-                |> String.split "/"
-                |> List.reverse
-                |> List.head
+        location =
+            path |> parsePath locParser
 
         login =
             case muser of
                 Just user ->
-                    ( NotFound, Navigation.newUrl "main" )
+                    ( NotFound, Navigation.newUrl "/main" )
 
                 _ ->
                     let
@@ -120,52 +123,40 @@ locationToPage muser location =
                         ( Settings settings, Cmd.map SettingsMsg cmd )
 
                 Nothing ->
-                    ( NotFound, Navigation.newUrl "index.html" )
+                    ( NotFound, Navigation.newUrl "/index.html" )
 
-        files =
+        files i =
             case muser of
                 Just user ->
                     let
                         ( files, cmd ) =
-                            Files.init user
+                            Files.init user i
                     in
                         ( Files files, Cmd.map FilesMsg cmd )
 
                 Nothing ->
-                    ( NotFound, Navigation.newUrl "index.html" )
+                    ( NotFound, Navigation.newUrl "/index.html" )
 
         logout =
             ( NotFound, Api.postLogout |> Http.send LogoutResult )
     in
-        case suffix of
+        case location of
             Nothing ->
                 login
 
             Just a ->
                 case a of
-                    "index.html" ->
+                    LoginLoc ->
                         login
 
-                    "main" ->
-                        files
+                    FilesLoc i ->
+                        files i
 
-                    "main?" ->
-                        files
-
-                    "settings" ->
+                    SettingsLoc ->
                         settings
 
-                    "" ->
-                        login
-
-                    "logout" ->
+                    LogoutLoc ->
                         logout
-
-                    "upload-file" ->
-                        logout
-
-                    _ ->
-                        NotFound ! []
 
 
 init : Navigation.Location -> ( State, Cmd Msg )

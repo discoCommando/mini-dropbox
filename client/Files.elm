@@ -38,7 +38,8 @@ type Msg
 
 
 type alias Model =
-    { dropdownState : Dropdown.State
+    { parentId : Int
+    , dropdownState : Dropdown.State
     , fileDropdowns : List Dropdown.State
     , helpers : Helpers.Model
     , user : Api.User
@@ -49,13 +50,14 @@ type alias Model =
     }
 
 
-init : Api.User -> ( Model, Cmd Msg )
-init user =
+init : Api.User -> Maybe Int -> ( Model, Cmd Msg )
+init user mparentId =
     let
         ( helpers, cmd ) =
             Helpers.init
     in
-        { helpers = helpers
+        { parentId = Maybe.withDefault 0 mparentId
+        , helpers = helpers
         , dropdownState = Dropdown.initialState
         , fileDropdowns =
             List.repeat 4 Dropdown.initialState
