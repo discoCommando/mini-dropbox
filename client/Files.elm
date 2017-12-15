@@ -21,6 +21,7 @@ import Html.Events exposing (..)
 import Navigation
 import Helpers
 import Api
+import Http
 
 
 type Msg
@@ -29,7 +30,11 @@ type Msg
     | DropdownMsg Dropdown.State
     | FileDropdown Int Dropdown.State
     | HelpersMsg Helpers.Msg
-    | ModalMsg Modal.State
+    | FileUploadModalMsg Modal.State
+    | AddFolderModalMsg Modal.State
+    | AddFolderSubmit
+    | AddFolderNameSet String
+    | AddFolderResult (Result Http.Error Api.FileStructure)
 
 
 type alias Model =
@@ -37,7 +42,10 @@ type alias Model =
     , fileDropdowns : List Dropdown.State
     , helpers : Helpers.Model
     , user : Api.User
-    , modalState : Modal.State
+    , fileUploadModalState : Modal.State
+    , addFolderModalState : Modal.State
+    , addFolderError : Maybe String
+    , addFolderName : String
     }
 
 
@@ -52,7 +60,10 @@ init user =
         , fileDropdowns =
             List.repeat 4 Dropdown.initialState
         , user = user
-        , modalState = Modal.hiddenState
+        , fileUploadModalState = Modal.hiddenState
+        , addFolderModalState = Modal.hiddenState
+        , addFolderError = Nothing
+        , addFolderName = ""
         }
             ! [ cmd |> Cmd.map HelpersMsg ]
 
@@ -91,8 +102,34 @@ update msg model =
             in
                 { model | helpers = helpers } ! [ cmd |> Cmd.map HelpersMsg ]
 
-        ModalMsg state ->
-            { model | modalState = state } ! []
+        FileUploadModalMsg state ->
+            { model | fileUploadModalState = state } ! []
+
+        AddFolderModalMsg state ->
+            { model | addFolderModalState = state } ! []
+
+        AddFolderSubmit ->
+            case model.addFolderName of
+                "" ->
+                    { model | addFolderError = Just "Folder name cannot be empty" } ! []
+
+                _ ->
+                    { model | addFolderError = Nothing } ! [ Api.putApiFolderByFolderid 1 model.addFolderName |> Http.send AddFolderResult ]
+
+        AddFolderNameSet s ->
+            { model | addFolderError = Nothing, addFolderName = s } ! []
+
+        AddFolderResult res ->
+            let
+                _ =
+                    Debug.log "res" res
+            in
+                case res of
+                    Ok _ ->
+                        { model | addFolderModalState = Modal.hiddenState } ! []
+
+                    _ ->
+                        model ! []
 
 
 fileActions : Int -> Model -> Html Msg
@@ -148,8 +185,8 @@ viewContent model =
                             [ Button.secondary ]
                             [ text "Actions" ]
                     , items =
-                        [ Dropdown.buttonItem [ class "pointer" ] [ text "Add folder" ]
-                        , Dropdown.buttonItem [ class "pointer", onClick <| ModalMsg Modal.visibleState ] [ text "Upload file" ]
+                        [ Dropdown.buttonItem [ class "pointer", onClick <| AddFolderModalMsg Modal.visibleState ] [ text "Add folder" ]
+                        , Dropdown.buttonItem [ class "pointer", onClick <| FileUploadModalMsg Modal.visibleState ] [ text "Upload file" ]
                         , Dropdown.buttonItem [ class "pointer" ] [ text "Paste" ]
                         ]
                     }
@@ -203,7 +240,7 @@ viewContent model =
                     }
                 ]
             ]
-        , Modal.config ModalMsg
+        , Modal.config FileUploadModalMsg
             |> Modal.small
             |> Modal.h3 [] [ text "Upload file(s)" ]
             |> Modal.body []
@@ -217,7 +254,18 @@ viewContent model =
                         [ text "Submit" ]
                     ]
                 ]
-            |> Modal.view model.modalState
+            |> Modal.view model.fileUploadModalState
+        , Modal.config AddFolderModalMsg
+            |> Modal.small
+            |> Modal.h3 [] [ text "Add folder" ]
+            |> Modal.body []
+                [ text "Folder name"
+                , Input.text [ Input.attrs [ onInput AddFolderNameSet ] ]
+                , text <| Maybe.withDefault "" model.addFolderError
+                ]
+            |> Modal.footer []
+                [ Button.button [ Button.outlineSuccess, Button.attrs [ onClick AddFolderSubmit ] ] [ text "Submit" ] ]
+            |> Modal.view model.addFolderModalState
         ]
 
 

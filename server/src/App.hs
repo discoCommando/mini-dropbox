@@ -26,6 +26,7 @@ import           Network.Wai
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.PostgresqlSimple
+import           Database.PostgreSQL.Simple.ToField
 import           Snap.Snaplet.Auth
 import           Snap.Snaplet.Session
 import           Snap.Snaplet.Heist
@@ -67,10 +68,12 @@ app =
   renameFolder      :<|> 
   moveFolder        :<|> 
   deleteFolder      :<|> 
+  addFolder         :<|> 
 
   renameFile        :<|>
   moveFile          :<|>
   deleteFile        :<|>
+
   user)
 
   :<|> 
@@ -95,6 +98,24 @@ app =
   deleteFolder      :: Int -> AppHandler FileStructure
   deleteFolder      = 
     undefined 
+
+  addFolder      :: Int -> Text -> AppHandler FileStructure
+  addFolder parentId folderName =  do  
+    cu <- with auth $ currentUser
+    case cu of 
+      Nothing -> return $ FileStructure [] []
+      Just u -> with db $ do 
+        xs <- (query
+          "INSERT INTO folders (folderParentId, folderName, folderUid, folderInsertDate) VALUES (?,?,?,NOW()) RETURNING folderId"
+          (parentId, folderName, maybe "0" unUid $ userId u) :: Handler App Postgres [Only Int]) 
+        folders <- query 
+          "SELECT * FROM folders WHERE folderParentId=?"
+          ([parentId])
+        files <- query 
+          "SELECT * FROM files WHERE fileFolderId=?"
+          ([parentId])
+        return $ FileStructure (files :: [File]) (folders :: [Folder])
+
 
   renameFile        :: Int -> Text -> AppHandler FileStructure
   renameFile        = 
